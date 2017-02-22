@@ -246,8 +246,8 @@ time_gap = 60. # one minute
 #folder = './testroutes/'
 #route_links, route_weights, K_set, routes = rc.get_routes_from_pkl(folder)
 
-Ks = [100, 200, 300, 500, 1000, 1500, 2000, 3000, 5000]
-#Ks = [2000]
+#Ks = [100, 200, 300, 500, 1000, 1500, 2000, 3000, 5000]
+Ks = [200]
 
 print sys.argv
 start = int(sys.argv[1])
@@ -262,4 +262,4 @@ for i in xrange(start,stop+1):
   pkl.dump(results,f,protocol=pkl.HIGHEST_PROTOCOL)
   f.close()
   
-#plot_results(results)
+plot_results(results)
