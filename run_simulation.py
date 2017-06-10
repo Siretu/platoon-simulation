@@ -6,7 +6,7 @@ import random
 import sys
 import time
 
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 import mpl_toolkits
 
 import clusteralg as cl
@@ -101,7 +101,7 @@ def one_simulation(K, folder="", load=False, save=False):
 
     default_plans = pp.get_default_plans(problem_data, path_data_sets)
     input_stuff = [dict(x.items() + [("t_s", path_data_sets[i]["t_s"])] + [("v_default", default_plans[i]["v_default"])]) for i,x in enumerate(routes)]
-    vis.start(input_stuff)
+    # vis.start(input_stuff)
 
     start_t = time.time()
     G_p = pp.build_G_p(problem_data, path_data_sets, default_plans)
@@ -182,7 +182,7 @@ def one_simulation(K, folder="", load=False, save=False):
 
     print '------- sub modularity node selection --------'
     print 'relative fuel savings before convex optimizaton: {}'.format(f_relat_before_convex_sub)
-    print 'relative fuel savings after convex optimizaton: {}'.format(f_relat_before_convex_sub)
+    print 'relative fuel savings after convex optimizaton: {}'.format(f_relat_after_convex_sub)
 
     # sr.plot_routes_in_density_map(routes)
 
@@ -211,20 +211,20 @@ def one_simulation(K, folder="", load=False, save=False):
     return results
 
 
-def plot_results(results):
-    f_relat_after_convex_gr = []
-    Ks = list(results)
-    Ks.sort()
-
-    for K in Ks:
-        f_relat_after_convex_gr.append(results[K]['f_relat_after_convex_gr'])
-
-    fig, ax1 = plt.subplots()
-    ax1.plot(Ks, f_relat_after_convex_gr, 'b-+')
-
-    plt.show(block=False)
-
-    return
+# def plot_results(results):
+#     f_relat_after_convex_gr = []
+#     Ks = list(results)
+#     Ks.sort()
+#
+#     for K in Ks:
+#         f_relat_after_convex_gr.append(results[K]['f_relat_after_convex_gr'])
+#
+#     fig, ax1 = plt.subplots()
+#     ax1.plot(Ks, f_relat_after_convex_gr, 'b-+')
+#
+#     plt.show(block=False)
+#
+#     return
 
 
 # %%%%%%%%%%%% Simulation configuration
@@ -296,21 +296,26 @@ time_gap = 60.  # one minute
 # folder = './testroutes/'
 # route_links, route_weights, K_set, routes = rc.get_routes_from_pkl(folder)
 
-# Ks = [100, 200, 300, 500, 1000, 1500, 2000, 3000, 5000]
-Ks = [100]
 
-print sys.argv
-start = int(sys.argv[1])
-stop = int(sys.argv[2])
+def main():
+    # Ks = [100, 200, 300, 500, 1000, 1500, 2000, 3000, 5000]
+    Ks = [100]
 
-for i in xrange(start, stop + 1):
-    results = {}
-    for K in Ks:
-        results[K] = one_simulation(K, "./testroutes/test100-1/", load=True, save=True)
+    print sys.argv
+    start = int(sys.argv[1])
+    stop = int(sys.argv[2])
 
-    f = open('./simres/{}__{}.pkl'.format(i, time.time()), 'w')
-    pkl.dump(results, f, protocol=pkl.HIGHEST_PROTOCOL)
-    f.close()
+    for i in xrange(start, stop + 1):
+        results = {}
+        for K in Ks:
+            results[K] = one_simulation(K, "./testing/testroutes/test100-1/", load=True, save=False)
 
-# bmp.scatter(0, 0, latlon=True)
-# plot_results(results)
+        f = open('./simres/{}__{}.pkl'.format(i, time.time()), 'w')
+        pkl.dump(results, f, protocol=pkl.HIGHEST_PROTOCOL)
+        f.close()
+
+    # bmp.scatter(0, 0, latlon=True)
+    # plot_results(results)
+
+if __name__ == "__main__":
+    main()

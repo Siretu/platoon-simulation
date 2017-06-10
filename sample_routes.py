@@ -19,7 +19,7 @@ min_route_length = 100*1000
 max_route_length = 400*1000 # in meters
 osrm_url = 'simserver.now.im:5000'
 
-density_map = scipy.ndimage.imread('./sedac_sweden_only.png',mode='L')
+density_map = scipy.ndimage.imread(os.path.join(os.path.dirname(__file__), 'sedac_sweden_only.png'),mode='L')
 resolution = 0.1 # .1 deg/pixel
 #offset_left = 1690
 #offset_top = 250
