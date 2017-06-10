@@ -73,9 +73,9 @@ def plot(K):
   print 'building coordination graph'
   path_data_sets = build_path_data_sets(problem_data, route_links, route_weights, route_lat, route_lon, start_times, arrival_dlines, active_trucks)
   
-  default_plans = pp.get_default_plans(problem_data,path_data_sets)
+  default_plans = pp.get_default_plans(path_data_sets)
   
-  G_p = pp.build_G_p(problem_data,path_data_sets,default_plans)
+  G_p = pp.build_G_p(path_data_sets, default_plans)
   
   N_f_gr,N_l_gr,leaders_gr,counter_gr = cl.clustering(G_p,'greedy')
   # create adjecancy matrix

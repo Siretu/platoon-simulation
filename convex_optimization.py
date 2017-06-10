@@ -13,6 +13,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 from mpl_toolkits.mplot3d import Axes3D
 
+import constants
+
 LEADER = -1
 NONE = -2
 
@@ -70,7 +72,7 @@ def get_W_n_I_msp(leader, followers, start_times, arrival_dlines, arrival_times,
     return W_n, I_m, I_sp, T_n
 
 
-def get_W_n_I_msp_simple_call(leader, followers, problem_data, path_data_sets, plans):
+def get_W_n_I_msp_simple_call(leader, followers, path_data_sets, plans):
     # reformates data and calls get_W_n_I_msp
 
     start_times = {k: path_data_sets[k]['t_s'] for k in [leader] + followers}
@@ -80,7 +82,7 @@ def get_W_n_I_msp_simple_call(leader, followers, problem_data, path_data_sets, p
     split_dists = {k: plans[k]['d_sp'] for k in followers}
     merge_times = {k: plans[k]['t_m'] for k in followers}
     split_times = {k: plans[k]['t_sp'] for k in followers}
-    default_speed = problem_data['v_nom']
+    default_speed = constants.v_nom
     # TODO: adapt to leader specific speed
 
     return get_W_n_I_msp(leader, followers, start_times, arrival_dlines, arrival_times, merge_dists, split_dists,
@@ -228,16 +230,16 @@ def array_to_dict(val_array, leader, followers, segment_nums):
     return val_dict
 
 
-def get_F_vec(F, P_n, leader, followers):
+def get_F_vec(P_n, leader, followers):
     F0_vec = []
     F1_vec = []
     for t in dict_to_array(P_n, leader, followers):
         if t:
-            F0_vec.append(F['F0p'])
-            F1_vec.append(F['F1p'])
+            F0_vec.append(constants.F0p)
+            F1_vec.append(constants.F1p)
         else:
-            F0_vec.append(F['F0'])
-            F1_vec.append(F['F1'])
+            F0_vec.append(constants.F0)
+            F1_vec.append(constants.F1)
 
     F0_vec = np.array(F0_vec)
     F1_vec = np.array(F1_vec)
@@ -245,7 +247,7 @@ def get_F_vec(F, P_n, leader, followers):
     return F0_vec, F1_vec
 
 
-def solve(W_n, P_n, T_n, leader, followers, v_min, v_max, start_times, arrival_dlines, arrival_times, I_m, I_sp, F):
+def solve(W_n, P_n, T_n, leader, followers, v_min, v_max, start_times, arrival_dlines, arrival_times, I_m, I_sp):
     A = get_A(W_n, P_n, leader, followers, v_min, v_max, start_times, arrival_dlines, I_m, I_sp)
     b = get_b(W_n, P_n, leader, followers, v_min, v_max, start_times, arrival_dlines, I_m, I_sp)
     G = get_G(W_n, P_n, leader, followers, v_min, v_max, start_times, arrival_dlines, I_m, I_sp)
@@ -254,7 +256,7 @@ def solve(W_n, P_n, T_n, leader, followers, v_min, v_max, start_times, arrival_d
     T_0 = co.matrix(dict_to_array(T_n, leader, followers))
 
     W_vec = dict_to_array(W_n, leader, followers)
-    F0_vec, F1_vec = get_F_vec(F, P_n, leader, followers)
+    F0_vec, F1_vec = get_F_vec(P_n, leader, followers)
 
     #  F0 is not needed at this point
 
@@ -283,8 +285,8 @@ def solve(W_n, P_n, T_n, leader, followers, v_min, v_max, start_times, arrival_d
     return T_star, f_opt, f_initial
 
 
-def optimize_cluster(leader, followers, problem_data, path_data_sets, plans):
-    W_n, I_m, I_sp, T_n = get_W_n_I_msp_simple_call(leader, followers, problem_data, path_data_sets, plans)
+def optimize_cluster(leader, followers, path_data_sets, plans):
+    W_n, I_m, I_sp, T_n = get_W_n_I_msp_simple_call(leader, followers, path_data_sets, plans)
     P_n = get_P_n_simple_call(W_n, leader, followers, plans)
 
     # debug
@@ -297,14 +299,14 @@ def optimize_cluster(leader, followers, problem_data, path_data_sets, plans):
         print 'total route lenghts do not match. difference: {}'.format(cluster_route_length_ref - cluster_route_length)
 
     # adapt data
-    v_max = problem_data['v_max']
-    v_min = problem_data['v_min']
+    v_max = constants.v_max
+    v_min = constants.v_min
     start_times = {k: path_data_sets[k]['t_s'] for k in [leader] + followers}
     arrival_dlines = {k: path_data_sets[k]['arrival_dline'] for k in [leader] + followers}
     arrival_times = {k: plans[k]['t_a'] for k in [leader] + followers}
 
     T_star, obj_opt, obj_init = solve(W_n, P_n, T_n, leader, followers, v_min, v_max, start_times, arrival_dlines,
-                                      arrival_times, I_m, I_sp, problem_data['F'])
+                                      arrival_times, I_m, I_sp)
 
     # debug!!!
     # plot_result(W_n,P_n,T_star,leader,followers,I_m,start_times)
@@ -349,7 +351,7 @@ def get_followers(N_l, leaders):
     return followers
 
 
-def optimize_all_clusters(problem_data, leaders, N_l, plans, path_data_sets):
+def optimize_all_clusters(leaders, N_l, plans, path_data_sets):
     # optimizes the speed profiles of all the clusters, returns speed profiles,
     # total fuel consumption before and after the joint optimization
 
@@ -364,7 +366,7 @@ def optimize_all_clusters(problem_data, leaders, N_l, plans, path_data_sets):
 
     for kl in N_l:
         followers = followers_dict[kl]
-        T_star, f_opt, f_init = optimize_cluster(kl, followers, problem_data, path_data_sets, plans)
+        T_star, f_opt, f_init = optimize_cluster(kl, followers, path_data_sets, plans)
         for k in [kl] + followers:
             T_stars[k] = T_star[k]
             f_opt_total += f_opt
@@ -373,7 +375,7 @@ def optimize_all_clusters(problem_data, leaders, N_l, plans, path_data_sets):
     return T_stars, f_opt_total, f_init_total
 
 
-def get_platoon_size_stats(problem_data, leaders, N_l, plans, path_data_sets):
+def get_platoon_size_stats(leaders, N_l, plans, path_data_sets):
     # calculates what distance was traveled in what kind of platoon sizes
 
 
@@ -382,7 +384,7 @@ def get_platoon_size_stats(problem_data, leaders, N_l, plans, path_data_sets):
 
     for kl in N_l:
         followers = followers_dict[kl]
-        stats_cluster = get_platoon_size_stats_one_cluster(kl, followers, problem_data, path_data_sets, plans)
+        stats_cluster = get_platoon_size_stats_one_cluster(kl, followers, path_data_sets, plans)
         for k in stats_cluster:
             if k in stats:
                 stats[k] += stats_cluster[k]
@@ -397,7 +399,7 @@ def get_platoon_size_stats(problem_data, leaders, N_l, plans, path_data_sets):
     return stats
 
 
-def get_platoon_size_stats_one_cluster(leader, followers, problem_data, path_data_sets, plans):
+def get_platoon_size_stats_one_cluster(leader, followers, path_data_sets, plans):
     # reformates data and calls get_W_n_I_msp
 
     start_times = {k: path_data_sets[k]['t_s'] for k in [leader] + followers}
@@ -407,7 +409,7 @@ def get_platoon_size_stats_one_cluster(leader, followers, problem_data, path_dat
     split_dists = {k: plans[k]['d_sp'] for k in followers}
     merge_times = {k: plans[k]['t_m'] for k in followers}
     split_times = {k: plans[k]['t_sp'] for k in followers}
-    default_speed = problem_data['v_nom']
+    default_speed = constants.v_nom
 
     min_seg_dur = 1e-6  # minmum duration of a segment to compensate for numerical inaccuracy
 

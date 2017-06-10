@@ -2,7 +2,7 @@ from __future__ import absolute_import
 import unittest
 
 from platooning.platooning_methods import GreedyPlatooning, RandomPlatooning, SubModularityPlatooning
-from run_simulation import one_simulation, simulation
+from run_simulation import simulation
 
 
 class TestSimulation(unittest.TestCase):

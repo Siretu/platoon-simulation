@@ -95,9 +95,9 @@ def one_simulation(K):
     print 'building coordination graph'
     path_data_sets = build_path_data_sets(problem_data, route_links, route_weights, route_lat, route_lon, start_times, arrival_dlines, active_trucks)
 
-    default_plans = pp.get_default_plans(problem_data,path_data_sets)
+    default_plans = pp.get_default_plans(path_data_sets)
 
-    G_p = pp.build_G_p(problem_data,path_data_sets,default_plans)
+    G_p = pp.build_G_p(path_data_sets, default_plans)
 
     # %%%%%% clustering
     print 'clustering'
@@ -105,7 +105,7 @@ def one_simulation(K):
 
     # %%%%%% joint optimization for all clusters
     print 'starting convex optimization'
-    plans = pp.retrieve_adapted_plans(problem_data,path_data_sets,G_p,leaders,default_plans)
+    plans = pp.retrieve_adapted_plans(path_data_sets, G_p, leaders, default_plans)
     followers_dict = cv.get_followers(N_l, leaders)
 
 
