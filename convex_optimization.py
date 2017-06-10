@@ -6,12 +6,10 @@ Convex optimization of the speed profiles given by the clustering algorithm
 
 @author: sebastian
 """
-from cvxopt import solvers
-import cvxopt as co
 import cvxopt
+import cvxopt as co
 import matplotlib.pyplot as plt
 import numpy as np
-from mpl_toolkits.mplot3d import Axes3D
 
 import constants
 

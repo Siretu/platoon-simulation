@@ -6,6 +6,7 @@ from clusteralg import get_two_hop_neighbors, delta_u, build_inverted_graph, cha
 total_miss = 0
 total_update = 0
 
+
 class PlatooningMethod():
     def select_node(self, nodes, gains, gain_heap):
         raise NotImplementedError("This method is not implemented")
@@ -110,6 +111,7 @@ class GreedyPlatooning(PlatooningMethod):
 
         return N_f, N_l, leaders, counter
 
+
 class RandomPlatooning(PlatooningMethod):
     def __init__(self, seed):
         self.seed = seed
@@ -191,6 +193,7 @@ class RandomPlatooning(PlatooningMethod):
         N_f = set([nodel for nodel in nodes if leaders[nodel] != LEADER])
 
         return N_f, N_l, leaders, counter
+
 
 class SubModularityPlatooning(PlatooningMethod):
     def __str__(self):

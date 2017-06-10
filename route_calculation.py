@@ -1,15 +1,14 @@
 # -*- coding: utf-8 -*-
 
-import os
 import cPickle as pkl
-import re
-import sample_routes as sr
+import os
 import random
-import gc
+import re
+
+import sample_routes as sr
 
 
 def get_routes_from_pkl(folder):
-
     route_links = {}
     route_weights = {}
     K_set = []
@@ -24,7 +23,7 @@ def get_routes_from_pkl(folder):
             k = int(m.group(1))
             K_set.append(k)
 
-            f = open('{}{}'.format(folder, f_name),'r')
+            f = open('{}{}'.format(folder, f_name), 'r')
             data = pkl.load(f)
             f.close()
 
@@ -33,11 +32,10 @@ def get_routes_from_pkl(folder):
 
             routes.append(data)
 
-    return route_links, route_weights, K_set,routes
+    return route_links, route_weights, K_set, routes
 
 
 def get_routes_from_osrm(number, verbose=False):
-
     route_links = {}
     route_weights = {}
     K_set = []
@@ -45,7 +43,7 @@ def get_routes_from_osrm(number, verbose=False):
     k = 0
 
     while len(K_set) < number:
-        route = sr.calc_route_retry(random.randint(0,1e10))
+        route = sr.calc_route_retry(random.randint(0, 1e10))
         #    gc.collect()
         if route != False:
             K_set.append(k)
@@ -56,6 +54,6 @@ def get_routes_from_osrm(number, verbose=False):
             routes.append(route)
 
             k += 1
-            if k%100 == 0: print '{} of {} routes calculated'.format(k, number)
+            if k % 100 == 0: print '{} of {} routes calculated'.format(k, number)
 
     return route_links, route_weights, K_set, routes

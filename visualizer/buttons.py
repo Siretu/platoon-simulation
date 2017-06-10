@@ -1,6 +1,7 @@
 from kivy.graphics.vertex_instructions import Rectangle, Triangle
 from kivy.uix.widget import Widget
 
+
 class PlayButton(Widget):
     def initialize(self):
         self.pauseb = [x for x in self.canvas.children if isinstance(x, Rectangle)]

@@ -19,14 +19,16 @@ class VisualizerApp(App):
         Clock.schedule_interval(game.update, 1.0 / FRAMERATE)
         return game
 
+
 def start(routes):
     VisualizerApp(routes).run()
+
 
 if __name__ == "__main__":
     route_data = {}
     route_data["node_coords_lat"] = np.array([100, 200, 300])
     route_data["node_coords_lon"] = np.array([100, 100, 200])
-    route_data["link_lengths"] = np.array([100,100, 150])
+    route_data["link_lengths"] = np.array([100, 100, 150])
     route_data["v_default"] = 22.2
     route_data["t_s"] = 10
     start([route_data])

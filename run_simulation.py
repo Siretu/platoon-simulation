@@ -12,13 +12,6 @@ import constants
 import convex_optimization as cv
 import pairwise_planning as pp
 import route_calculation as rc
-# import visualizer.visualizer as vis
-
-
-# units a in km and h
-
-# cd /mnt/data/Uni/PHD/truck_platoon_planning/osrm/osrm_backend_edge_ids/build/
-# ./osrm-routed sweden-latest.osrm
 from platooning.platooning_methods import GreedyPlatooning
 
 
@@ -51,9 +44,11 @@ def get_path_data_sets(folder):
     f = open('{}paths.pkl'.format(folder), 'r')
     return pkl.load(f)
 
+
 def save_path_data_sets(path_data_set, folder):
     f = open('{}paths.pkl'.format(folder), 'w')
     pkl.dump(path_data_set, f, protocol=pkl.HIGHEST_PROTOCOL)
+
 
 def generate_routes(K, folder):
     if not os.path.exists(folder):
@@ -71,6 +66,7 @@ def generate_routes(K, folder):
     path_data_sets = build_path_data_sets(route_links, route_weights, start_times, arrival_dlines, active_trucks)
     save_routes_to_pkl(folder, routes)
     save_path_data_sets(path_data_sets, folder)
+
 
 def simulation(folder, method):
     results = {}
@@ -95,7 +91,8 @@ def simulation(folder, method):
     f_relat_before_convex = (f_total_default - f_total_before_convex) / f_total_default
     f_total_after_convex = float(f_total_before_convex - (f_init_total - f_opt_total))
     f_relat_after_convex = (f_total_default - f_total_after_convex) / f_total_default
-    f_total_spont_plat = pp.total_fuel_comsumption_spontanous_platooning(path_data_sets, default_plans, constants.time_gap)
+    f_total_spont_plat = pp.total_fuel_comsumption_spontanous_platooning(path_data_sets, default_plans,
+                                                                         constants.time_gap)
     f_relat_spont_plat = (f_total_default - f_total_spont_plat) / f_total_default
     f_total_no_time = pp.total_fuel_comsumption_no_time_constraints(path_data_sets, default_plans, constants.time_gap)
     f_relat_no_time = (f_total_default - f_total_no_time) / f_total_default
@@ -123,6 +120,7 @@ def print_simulation_result(result):
     print '------- spontanous platooning --------'
     print 'relative fuel savings: {}'.format(result["f_relat_spont_plat"])
 
+
 def main():
     # Ks = [100, 200, 300, 500, 1000, 1500, 2000, 3000, 5000]
     Ks = [100]
@@ -141,8 +139,9 @@ def main():
         pkl.dump(results, f, protocol=pkl.HIGHEST_PROTOCOL)
         f.close()
 
-    # bmp.scatter(0, 0, latlon=True)
-    # plot_results(results)
+        # bmp.scatter(0, 0, latlon=True)
+        # plot_results(results)
+
 
 if __name__ == "__main__":
     main()

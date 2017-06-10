@@ -63,6 +63,7 @@ def subclustering(G):
 
     return real_followers, real_leaders, nodes, 1
 
+
 def f(leaders, G):
     G_inv = build_inverted_graph(G)
 

@@ -5,14 +5,14 @@
 #   "sublimeclang_options_script": "python ${home}/code/cmake_options_script.py ${project_path:build}/compile_commands.json",
 
 
-import re
-import os
+import json
 import os.path
 import pickle
+import re
 import sys
-import json
 
 compilation_database_pattern = re.compile('(?<=\s)-[DIOUWfgs][^=\s]+(?:=\\"[^"]+\\"|=[^"]\S+)?')
+
 
 def load_db(filename):
     compilation_database = {}
@@ -23,8 +23,10 @@ def load_db(filename):
     entry = 0
     for compilation_entry in compilation_database_entries:
         entry = entry + 1
-        compilation_database[compilation_entry["file"]] = [ p.strip() for p in compilation_database_pattern.findall(compilation_entry["command"]) ]
+        compilation_database[compilation_entry["file"]] = [p.strip() for p in compilation_database_pattern.findall(
+            compilation_entry["command"])]
     return compilation_database
+
 
 scriptpath = os.path.dirname(os.path.abspath(sys.argv[1]))
 cache_file = "%s/cached_options.txt" % (scriptpath)

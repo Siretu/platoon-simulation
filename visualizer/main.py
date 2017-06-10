@@ -3,7 +3,7 @@ from kivy.graphics.context_instructions import Color
 from kivy.uix.widget import Widget
 
 from route import Route
-from buttons import PlayButton
+
 ZOOM_FACTOR = 1.1
 
 
@@ -29,7 +29,6 @@ class VisualizerMain(Widget):
 
         self.initialize_routes(data)
 
-
     def initialize_routes(self, data):
         for route in data:
             line = Route(route)
@@ -42,22 +41,22 @@ class VisualizerMain(Widget):
 
     def _on_keyboard_down(self, keyboard, keycode, text, modifiers):
         if keycode[1] == 'w' or keycode[1] == 'up':
-            self.scroll_offset_y -= 10/self.zoom
+            self.scroll_offset_y -= 10 / self.zoom
         if keycode[1] == 's' or keycode[1] == 'down':
-            self.scroll_offset_y += 10/self.zoom
+            self.scroll_offset_y += 10 / self.zoom
         if keycode[1] == 'a' or keycode[1] == 'left':
-            self.scroll_offset_x += 10/self.zoom
+            self.scroll_offset_x += 10 / self.zoom
         if keycode[1] == 'd' or keycode[1] == 'right':
-            self.scroll_offset_x -= 10/self.zoom
+            self.scroll_offset_x -= 10 / self.zoom
         if keycode[1] == 'z':
             f = ZOOM_FACTOR
             self.scroll_offset_x = (self.center_x / f + self.scroll_offset_x * self.zoom - self.center_x) / self.zoom
             self.scroll_offset_y = (self.center_y / f + self.scroll_offset_y * self.zoom - self.center_y) / self.zoom
             self.zoom *= ZOOM_FACTOR
         if keycode[1] == 'x':
-            f = 1./ZOOM_FACTOR
-            self.scroll_offset_x = (self.center_x/f + self.scroll_offset_x * self.zoom - self.center_x) / self.zoom
-            self.scroll_offset_y = (self.center_y/f + self.scroll_offset_y * self.zoom - self.center_y) / self.zoom
+            f = 1. / ZOOM_FACTOR
+            self.scroll_offset_x = (self.center_x / f + self.scroll_offset_x * self.zoom - self.center_x) / self.zoom
+            self.scroll_offset_y = (self.center_y / f + self.scroll_offset_y * self.zoom - self.center_y) / self.zoom
             self.zoom /= ZOOM_FACTOR
         if keycode[1] == 'c':
             self.focus((self.data[0]["node_coords_lat"][0], self.data[0]["node_coords_lon"][0]))

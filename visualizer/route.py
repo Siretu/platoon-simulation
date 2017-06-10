@@ -4,9 +4,10 @@ from kivy.uix.widget import Widget
 
 FRAMERATE = 60.0
 
+
 class Route(Widget):
     PATH_WIDTH = 1
-    MARKER_SIZE = (5,5)
+    MARKER_SIZE = (5, 5)
     time = 0
 
     def __init__(self, route_data):
@@ -19,7 +20,7 @@ class Route(Widget):
         self.start_pos = (self.lat[0], self.lon[0])
         self.end_pos = (self.lat[-1], self.lon[-1])
         self.truck = None
-        self.start_time = route_data["t_s"]/FRAMERATE
+        self.start_time = route_data["t_s"] / FRAMERATE
 
     def draw(self):
 
@@ -37,7 +38,7 @@ class Route(Widget):
             self.draw()
         if self.time >= self.start_time and not self.truck:
             Color(1., 0, 1.)
-            self.truck = Ellipse(pos = [x-5 for x in self.start.pos], size=(10,10))
+            self.truck = Ellipse(pos=[x - 5 for x in self.start.pos], size=(10, 10))
         self.line.points = self.transform_data(self.lat, self.lon)
         self.start.pos = self.transform_points(self.start_pos)
         self.goal.pos = self.transform_points(self.end_pos)
@@ -48,19 +49,18 @@ class Route(Widget):
     def calculate_truck_pos(self):
         current = (self.time - self.start_time) * self.speed * FRAMERATE
         i = 0
-        while i < len(self.links) - 1 and current > self.links[i+1]:
-            current -= self.links[i+1]
+        while i < len(self.links) - 1 and current > self.links[i + 1]:
+            current -= self.links[i + 1]
             i += 1
 
         x = self.lat[i]
         y = self.lon[i]
 
         if i < len(self.links) - 1:
-            x += (self.lat[i+1] - self.lat[i]) * (current / self.links[i+1])
-            y += (self.lon[i+1] - self.lon[i]) * (current / self.links[i+1])
+            x += (self.lat[i + 1] - self.lat[i]) * (current / self.links[i + 1])
+            y += (self.lon[i + 1] - self.lon[i]) * (current / self.links[i + 1])
 
-
-        return (x,y)
+        return (x, y)
 
     def transform_data(self, lat, lon):
         a = (lat + self.parent.scroll_offset_x) * self.parent.zoom
