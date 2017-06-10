@@ -170,6 +170,7 @@ def select_node_random(nodes, gains):
     if len(nodes_with_pos_gain) == 0:
         node = -1
     else:
+        random.seed(0)
         node = random.choice(nodes_with_pos_gain)
 
     return node
