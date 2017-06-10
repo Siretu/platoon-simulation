@@ -64,7 +64,6 @@ def process_folder(folder):
             [result[K]['upper_bound'] / result[K]['f_total_default'] for result in results])
         # TODO: replace later by upper_bound_relat
 
-
         # process size stats
         av_stats = {}
         for result in results:

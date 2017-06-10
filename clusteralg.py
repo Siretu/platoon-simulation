@@ -34,8 +34,8 @@ def subclustering(G):
     for i in range(len(Y[0])):
         Xp = X[i].union([i])
         Yp = Y[i].difference([i])
-        a = f(Xp, G) - f(X[i], G)
-        b = f(Yp, G) - f(Y[i], G)
+        a = f_alg(Xp, G) - f_alg(X[i], G)
+        b = f_alg(Yp, G) - f_alg(Y[i], G)
         if a >= b:
             X.append(Xp)
             Y.append(Y[i])
@@ -64,7 +64,7 @@ def subclustering(G):
     return real_followers, real_leaders, nodes, 1
 
 
-def f(leaders, G):
+def f_alg(leaders, G):
     G_inv = build_inverted_graph(G)
 
     followers = set(G.keys()).difference(leaders)
@@ -82,7 +82,7 @@ def f(leaders, G):
 def clustering(G, node_selection_method='greedy', verbose=False, max_iter=1000000):
     # node selection method: greedy, random
 
-    ######## init #########
+    # Init
 
     LEADER = -1
     NONE = -2
@@ -94,13 +94,14 @@ def clustering(G, node_selection_method='greedy', verbose=False, max_iter=100000
     counter = 0
     # caution: the list use negative gains for since it is a min heap
     # and we want to change the node with biggest gain
-    gains = {n: [-delta_u(n, leaders, G, G_inv), n] for n in nodes}
+    gains = {n: [-get_delta_u(n, leaders, G, G_inv), n] for n in nodes}
     if node_selection_method == 'greedy':
         gain_heap = []
         for key in gains:  # add all nodes with positive gain to the heap
-            if gains[key][0] < 0.: heapq.heappush(gain_heap, gains[key])
+            if gains[key][0] < 0.:
+                heapq.heappush(gain_heap, gains[key])
 
-    ######## loop #########
+    # loop
 
     while counter < max_iter:
         counter += 1  # iteration count
@@ -113,7 +114,8 @@ def clustering(G, node_selection_method='greedy', verbose=False, max_iter=100000
         else:
             print 'invalid node selection method'
             return
-        if node == -1: break
+        if node == -1:
+            break
 
         # update the role of the node
         if leaders[node] == LEADER:  # become a follower
@@ -126,7 +128,7 @@ def clustering(G, node_selection_method='greedy', verbose=False, max_iter=100000
         elif node_selection_method == 'random':
             update_u_random(node, leaders, gains, G, G_inv)
 
-    ######### clean-up #########
+    # clean-up
 
     # check if all leaders have followers
     for n in G:
@@ -161,7 +163,8 @@ def select_node_greedy(nodes, gains, gain_heap):
     else:
         while 1:
             (gain, node) = heapq.heappop(gain_heap)
-            if node != -1 or len(gain_heap) == 0: break
+            if node != -1 or len(gain_heap) == 0:
+                break
 
     return node
 
@@ -190,7 +193,8 @@ def change_to_follower(node, leaders, G, G_inv, verbose):
         if leaders[neighbor] == LEADER and G[node][neighbor] > gain_l:
             best_l = neighbor
             gain_l = G[node][neighbor]
-    if verbose: print 'node ' + str(node) + ' becomes a follower of node ' + str(best_l)
+    if verbose:
+        print 'node ' + str(node) + ' becomes a follower of node ' + str(best_l)
     leaders[node] = best_l
     for neighbor in G_inv[node]:
         if leaders[neighbor] == node:
@@ -212,7 +216,8 @@ def change_to_leader(node, leaders, G, G_inv, verbose):
     LEADER = -1
     NONE = -2
 
-    if verbose: print 'node ' + str(node) + ' becomes a leader'
+    if verbose:
+        print 'node ' + str(node) + ' becomes a leader'
     leaders[node] = LEADER
     for neighbor in G_inv[node]:
         if leaders[neighbor] != LEADER and leaders[neighbor] != NONE:
@@ -224,7 +229,7 @@ def change_to_leader(node, leaders, G, G_inv, verbose):
     return
 
 
-def delta_u(node, leaders, G, G_inv):
+def get_delta_u(node, leaders, G, G_inv):
     LEADER = -1
     NONE = -2
 
@@ -274,7 +279,7 @@ def update_u_greedy(n, leaders, gains, gain_heap, G, G_inv):
     # calculate and iterate of two hop neighbors
     neighbors = get_two_hop_neighbors(n, G, G_inv)
     for nb in neighbors:
-        gain = delta_u(nb, leaders, G, G_inv)
+        gain = get_delta_u(nb, leaders, G, G_inv)
 
         # update heap
         if gains[nb][0] != -gain:  # gain changed
@@ -298,7 +303,7 @@ def update_u_random(n, leaders, gains, G, G_inv):
     # calculate and iterate of two hop neighbors
     neighbors = get_two_hop_neighbors(n, G, G_inv)
     for nb in neighbors:
-        gain = delta_u(nb, leaders, G, G_inv)
+        gain = get_delta_u(nb, leaders, G, G_inv)
         gains[nb] = [-gain, nb]  # new entry
 
     return
@@ -315,7 +320,7 @@ def get_two_hop_neighbors(n, G, G_inv):
     return neighbors
 
 
-def upper_bound(G):
+def get_upper_bound(G):
     upper_bound = 0.
     for kf in G:
         best_val = 0.

@@ -39,7 +39,7 @@ def get_W_n_I_msp(leader, followers, start_times, arrival_dlines, arrival_times,
             T_n[truck].append(merge_times[truck] - start_times[truck])
 
     last_time = start_times[leader]
-    active_trucks = set([leader])
+    active_trucks = {leader}
     i_cur = 0
     for poi in merge_order:
         time, truck, maneuvre = poi
@@ -259,15 +259,18 @@ def solve(W_n, P_n, T_n, leader, followers, v_min, v_max, start_times, arrival_d
     #  F0 is not needed at this point
 
     def F(T=None, z=None):
-        if T is None: return 0, T_0  # initial conditions
-        if min(T) <= 0.0: return None  # not in the domain
+        if T is None:
+            return 0, T_0  # initial conditions
+        if min(T) <= 0.0:
+            return None  # not in the domain
         T = np.array(T)
         f = np.sum(np.divide(np.multiply(F1_vec, np.power(W_vec, 2)).reshape([1, -1]),
                              T.reshape([1, -1])))  # objective function
         f = co.matrix(f)
         Df = co.matrix(-1 * np.divide(np.multiply(F1_vec, np.power(W_vec, 2)).reshape([1, -1]),
                                       np.power(T, 2).reshape([1, -1])))  # gradient transpose
-        if z is None: return f, Df
+        if z is None:
+            return f, Df
         H = co.spdiag(z[0] * co.matrix(2 * np.divide(np.multiply(F1_vec, np.power(W_vec, 2)).reshape([1, -1]),
                                                      np.power(T, 3).reshape(
                                                          [1, -1]))))  # compute hessian (spdiag: matlab diag)
@@ -315,7 +318,6 @@ def optimize_cluster(leader, followers, path_data_sets, plans):
 def plot_result(W_n, P_n, T_star, leader, followers, I_m, start_times):
     # todos: pgf, remove default speed, show old grayed out
 
-
     all_trucks = [leader] + followers
     segment_nums = [len(W_n[n]) for n in all_trucks]
     plt.figure()
@@ -361,7 +363,6 @@ def optimize_all_clusters(leaders, N_l, plans, path_data_sets):
     f_init_total = 0.
     # TODO: take care of the nones
 
-
     for kl in N_l:
         followers = followers_dict[kl]
         T_star, f_opt, f_init = optimize_cluster(kl, followers, path_data_sets, plans)
@@ -376,7 +377,6 @@ def optimize_all_clusters(leaders, N_l, plans, path_data_sets):
 def get_platoon_size_stats(leaders, N_l, plans, path_data_sets):
     # calculates what distance was traveled in what kind of platoon sizes
 
-
     followers_dict = get_followers(N_l, leaders)
     stats = {1: 0.}
 
@@ -389,7 +389,6 @@ def get_platoon_size_stats(leaders, N_l, plans, path_data_sets):
             else:
                 stats[k] = stats_cluster[k]
 
-    NONE = -2
     for k in leaders:
         if leaders[k] == NONE:
             stats[1] += np.sum(path_data_sets[k]['path_weights'])
@@ -423,7 +422,7 @@ def get_platoon_size_stats_one_cluster(leader, followers, path_data_sets, plans)
             stats[1] += merge_dists[truck]
 
     last_time = start_times[leader]
-    active_trucks = set([leader])
+    active_trucks = {leader}
     i_cur = 0
     for poi in merge_order:
         time, truck, maneuvre = poi
@@ -453,7 +452,7 @@ def get_platoon_size_stats_one_cluster(leader, followers, path_data_sets, plans)
     return stats
 
 
-######################## new simulation code ##################################
+# new simulation code
 '''
 
 ## fuel model, linear affine, _p for platoon follower

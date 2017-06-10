@@ -45,7 +45,7 @@ def get_routes_from_osrm(number, verbose=False):
     while len(K_set) < number:
         route = sr.calc_route_retry(random.randint(0, 1e10))
         #    gc.collect()
-        if route != False:
+        if route:
             K_set.append(k)
 
             route_links[k] = route['node_ids']
@@ -54,6 +54,7 @@ def get_routes_from_osrm(number, verbose=False):
             routes.append(route)
 
             k += 1
-            if k % 100 == 0: print '{} of {} routes calculated'.format(k, number)
+            if k % 100 == 0:
+                print '{} of {} routes calculated'.format(k, number)
 
     return route_links, route_weights, K_set, routes

@@ -19,16 +19,16 @@ def build_path_data_sets(route_links, route_weights, start_times, arrival_dlines
                          start_poses=None):
     path_data_sets = {}
     for k in active_trucks:
-        path_data = {}
-        path_data['path'] = route_links[k]
-        path_data['path_set'] = set(path_data['path'])
-        path_data['path_weights'] = route_weights[k]
-        if start_poses != None:
+        path_data = {'path': route_links[k],
+                     'path_set': set(path_data['path']),
+                     'path_weights': route_weights[k],
+                     't_s': start_times[k],
+                     'arrival_dline': arrival_dlines[k]
+                     }
+        if start_poses is not None:
             path_data['start_pos'] = start_poses[k]
         else:
             path_data['start_pos'] = {'i': 0, 'x': 0.}
-        path_data['t_s'] = start_times[k]
-        path_data['arrival_dline'] = arrival_dlines[k]
         path_data_sets[k] = path_data
 
     return path_data_sets
@@ -76,16 +76,16 @@ def simulation(folder, method):
     print "computing the coordination graph"
     G_p = pp.build_G_p(path_data_sets, default_plans)
 
-    ## Clustering
+    # Clustering
     print "clustering"
     N_f, N_l, leaders, counter = method.clustering(G_p)
 
-    ## Joint optimization for all clusters
+    # Joint optimization for all clusters
     print "convex optimization"
     plans = pp.retrieve_adapted_plans(path_data_sets, G_p, leaders, default_plans)
     T_stars, f_opt_total, f_init_total = cv.optimize_all_clusters(leaders, N_l, plans, path_data_sets)
 
-    ## Calculate fuel consumption
+    # Calculate fuel consumption
     f_total_default = pp.total_fuel_consumption(default_plans)
     f_total_before_convex = pp.total_fuel_consumption(plans)
     f_relat_before_convex = (f_total_default - f_total_before_convex) / f_total_default
@@ -105,7 +105,7 @@ def simulation(folder, method):
     results['f_relat_before_convex'] = f_relat_before_convex
     results['f_relat_after_convex'] = f_relat_after_convex
     results['size_stats'] = cv.get_platoon_size_stats(leaders, N_l, plans, path_data_sets)
-    results['upper_bound'] = cl.upper_bound(G_p)
+    results['upper_bound'] = cl.get_upper_bound(G_p)
     results['leaders'] = leaders
     return results
 

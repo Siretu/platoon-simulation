@@ -38,7 +38,7 @@ def latlon_to_pixel(lat, lon, coor_prec):
     coor_prec = float(coor_prec)
     y = (90 - lat / coor_prec) / resolution
     x = (180 + lon / coor_prec) / resolution
-    return x.astype('int'), y.astype('int')
+    return int(x), int(y)
 
 
 prob_dist = 1. * density_map.flatten() / np.sum(density_map.flatten())
@@ -73,7 +73,8 @@ def sample_start_goal(seed):
 def calc_route_retry(seed, verbose=False):
     start_loc, goal_loc = sample_start_goal(seed)  # use the sequence number as the seed
     if start_loc == goal_loc:
-        if verbose: print "start and goal are the same, abort"
+        if verbose:
+            print "start and goal are the same, abort"
         return False
 
     route = calc_route(start_loc, goal_loc, verbose)
@@ -81,21 +82,20 @@ def calc_route_retry(seed, verbose=False):
     rt = 1.
     rts = 1.
     # retries, they search in increasing distance in each direction
-    while route == False:
+    while not route:
         # try again with slightly different coordinates
         start_loc = (start_loc[0] + .01 * rt * rts, start_loc[1] + .01 * rt * rts)
         goal_loc = (goal_loc[0] + .01 * rt * rts, goal_loc[1] + .01 * rt * rts)
         route = calc_route(start_loc, goal_loc, verbose)
         rt += 1.
-        rts = rts * -1
-        if rt == 100: break
-    if route != False:
+        rts *= -1
+        if rt == 100:
+            break
+    if route:
         return route
     else:
         print 'could not find a route even for the altered coordinates between {} and {}'.format(start_loc, goal_loc)
         return False
-
-    return
 
 
 def calc_route(start_loc, goal_loc, verbose=False):
@@ -107,7 +107,8 @@ def calc_route(start_loc, goal_loc, verbose=False):
     if sl['status'] == 0:
         start_loc = sl["mapped_coordinate"]
     else:
-        if verbose: print "Could not locate a node close to the start location {:.6f},{:.6f}".format(*start_loc)
+        if verbose:
+            print "Could not locate a node close to the start location {:.6f},{:.6f}".format(*start_loc)
         conn.close()
         return False
 
@@ -117,17 +118,19 @@ def calc_route(start_loc, goal_loc, verbose=False):
     if gl['status'] == 0:
         goal_loc = gl["mapped_coordinate"]
     else:
-        if verbose: print "Could not locate a node close to the goal location {:.6f},{:.6f}".format(*goal_loc)
+        if verbose:
+            print "Could not locate a node close to the goal location {:.6f},{:.6f}".format(*goal_loc)
         conn.close()
         return False
 
-    if verbose: print "GET", "/viaroute?loc={:.6f},{:.6f}&loc={:.6f},{:.6f}&geometry=false".format(
-        *(start_loc + goal_loc))
+    if verbose:
+        print "GET", "/viaroute?loc={:.6f},{:.6f}&loc={:.6f},{:.6f}&geometry=false".format(*(start_loc + goal_loc))
     conn.request("GET", "/viaroute?loc={:.6f},{:.6f}&loc={:.6f},{:.6f}&geometry=false".format(*(start_loc + goal_loc)))
     r1 = conn.getresponse()
     route = json.load(r1)
     if route['status'] == 207:
-        if verbose: print "no route found between {} and {}".format(start_loc, goal_loc)
+        if verbose:
+            print "no route found between {} and {}".format(start_loc, goal_loc)
         conn.close()
         return False
 
@@ -207,8 +210,6 @@ def calc_route(start_loc, goal_loc, verbose=False):
     #  node_coords_lon = np.array(route['node_coords_lon'][start:end+1],dtype='int')
     #  route = {'node_ids':node_ids,'link_lengths':link_lengths,'node_coords_lat':node_coords_lat,'node_coords_lon':node_coords_lon}
 
-
-
     #  node_coords_lat = np.array(route['node_coords_lat'],dtype='int')
     #  node_coords_lon = np.array(route['node_coords_lon'],dtype='int')
     #  plot_routes_in_density_map([{'node_coords_lat':node_coords_lat,'node_coords_lon':node_coords_lon}])
@@ -222,7 +223,8 @@ def plot_routes_in_density_map(routes):
         lon = route['node_coords_lon']
         x, y = latlon_to_pixel(lat, lon, coordinate_precision)
         for i in xrange(y.shape[0]):
-            if x[i] < width and y[i] < height: density_map_rgb[y[i], x[i], :] = [255, 0, 0]
+            if x[i] < width and y[i] < height:
+                density_map_rgb[y[i], x[i], :] = [255, 0, 0]
         density_map_rgb[y[0], x[0], :] = [0, 255, 0]
         density_map_rgb[y[-1], x[-1], :] = [0, 0, 255]
 
@@ -239,9 +241,10 @@ def routes_to_pkl():
     for i in xrange(seed, seed + num_routes):
         # check if the file for that route already exists
         if not os.path.isfile('./testroutes/{}.pkl'.format(i)):
+            # This is probably an error
             route = calc_route(i)
             gc.collect()
-            if route != False:
+            if route:
                 try:
                     f = open('./testroutes/{}.pkl'.format(i), 'w')
                     pkl.dump(route, f, protocol=pkl.HIGHEST_PROTOCOL)

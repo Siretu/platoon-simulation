@@ -26,18 +26,18 @@ def build_path_data_sets(problem_data, route_links, route_weights, route_lat, ro
                          active_trucks, start_poses=None):
     path_data_sets = {}
     for k in active_trucks:
-        path_data = {}
-        path_data['path'] = route_links[k]
-        path_data['path_set'] = set(path_data['path'])
-        path_data['path_weights'] = route_weights[k]
-        path_data['path_lat'] = route_lat[k]
-        path_data['path_lon'] = route_lon[k]
-        if start_poses != None:
+        path_data = {'path': route_links[k],
+                    'path_set': set(path_data['path']),
+                    'path_weights': route_weights[k],
+                    'path_lat': route_lat[k],
+                    'path_lon': route_lon[k],
+                    't_s': start_times[k],
+                    'arrival_dline': arrival_dlines[k]
+                     }
+        if start_poses is not None:
             path_data['start_pos'] = start_poses[k]
         else:
             path_data['start_pos'] = {'i': 0, 'x': 0.}
-        path_data['t_s'] = start_times[k]
-        path_data['arrival_dline'] = arrival_dlines[k]
         path_data_sets[k] = path_data
 
     return path_data_sets
@@ -65,13 +65,12 @@ def one_simulation(K):
     # %%%%%%%%%%%% Generate Routes and start times / deadlines
     print 'retrieving the routes'
 
-    route_links, route_weights, K_set, routes, route_lat, route_lon = rc.get_routes_from_osrm(K, True, True)
+    route_links, route_weights, K_set, routes, route_lat, route_lon = rc.get_routes_from_osrm(K, True)
 
     # debug: give all trucks the same route
     #
     # route_links = {k:route_links[K_set[0]] for k in K_set}
     # route_weights = {k:route_weights[K_set[0]] for k in K_set}
-
 
     problem_data['K'] = copy.copy(K_set)
     active_trucks = copy.copy(K_set)
@@ -80,7 +79,6 @@ def one_simulation(K):
     # route_links = {0:[1,2,3,4,5], 1:[12,13,3,4,5], 3:[21,22,23,1,2,3,24]}
     # route_weights = {0:[5.5,5.,6.,4.,8.], 1:[5.,7.,6.,4.,8.], 3:[7.,2.,3.,5.5,5.,6.,100.]}
     # TODO: move into problem data ???
-
 
     # TODO: might need to change this to dicts because of truck dropping out
 
@@ -195,7 +193,8 @@ def one_simulation(K):
     new_dir = './plots/routes/{}/'.format(time.time())
     os.mkdir(new_dir)
     for i, n_l in enumerate(list(N_l)):
-        if i == max_plot_num: break
+        if i == max_plot_num:
+            break
         try:
             plot_one_group(n_l)
         except:
@@ -225,11 +224,7 @@ def plot_results(results):
 
 # %%%%%%%%%%%% Definition of Problem Data
 
-problem_data = {}
-problem_data['v_max'] = 90. / 3.6
-problem_data['v_min'] = 70. / 3.6
-problem_data['v_nom'] = 80. / 3.6
-problem_data['min_intersection_length'] = 5e3
+problem_data = {'v_max': 90. / 3.6, 'v_min': 70. / 3.6, 'v_nom': 80. / 3.6, 'min_intersection_length': 5e3}
 
 # problem_data['F'] = {'F0':1, 'F0p':0.9, 'F1':1./80, 'F1p':1./80*.9} # fuel model
 # problem_data['F'] = {'F0':0., 'F0p':1.-eta, 'F1':2./80, 'F1p':2./80*eta} # fuel model
@@ -294,10 +289,6 @@ one_simulation(K)
 
 # sp_im = scipy.misc.imread(image)
 # conn.close()
-
-
-
-
 
 # f = open('./testsimres/{}.pkl'.format(time.time()),'w')
 # pkl.dump(results,f)

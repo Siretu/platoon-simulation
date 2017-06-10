@@ -21,16 +21,17 @@ def build_path_data_sets(problem_data, route_links, route_weights, route_lat, ro
                          active_trucks, start_poses=None):
     path_data_sets = {}
     for k in active_trucks:
-        path_data = {}
-        path_data['path'] = route_links[k]
-        path_data['path_set'] = set(path_data['path'])
-        path_data['path_weights'] = route_weights[k]
-        if start_poses != None:
+        path_data = {'path': route_links[k],
+                    'path_set': set(path_data['path']),
+                    'path_weights': route_weights[k],
+                    't_s': start_times[k],
+                    'arrival_dline': arrival_dlines[k]
+                     }
+        if start_poses is not None:
             path_data['start_pos'] = start_poses[k]
         else:
             path_data['start_pos'] = {'i': 0, 'x': 0.}
-        path_data['t_s'] = start_times[k]
-        path_data['arrival_dline'] = arrival_dlines[k]
+
         path_data_sets[k] = path_data
 
     return path_data_sets
@@ -43,12 +44,10 @@ def plot(K):
     route_links, route_weights, K_set, routes = rc.get_routes_from_osrm(K, True)
     #  route_links, route_weights, K_set, routes = rc.get_routes_from_pkl('./testroutes100/')
 
-
     # debug: give all trucks the same route
     #
     # route_links = {k:route_links[K_set[0]] for k in K_set}
     # route_weights = {k:route_weights[K_set[0]] for k in K_set}
-
 
     problem_data['K'] = copy.copy(K_set)
     active_trucks = copy.copy(K_set)
@@ -57,7 +56,6 @@ def plot(K):
     # route_links = {0:[1,2,3,4,5], 1:[12,13,3,4,5], 3:[21,22,23,1,2,3,24]}
     # route_weights = {0:[5.5,5.,6.,4.,8.], 1:[5.,7.,6.,4.,8.], 3:[7.,2.,3.,5.5,5.,6.,100.]}
     # TODO: move into problem data ???
-
 
     # TODO: might need to change this to dicts because of truck dropping out
 
@@ -101,11 +99,7 @@ def plot(K):
 
 # %%%%%%%%%%%% Definition of Problem Data
 
-problem_data = {}
-problem_data['v_max'] = 90. / 3.6
-problem_data['v_min'] = 70. / 3.6
-problem_data['v_nom'] = 80. / 3.6
-problem_data['min_intersection_length'] = 5e3
+problem_data = {'v_max': 90. / 3.6, 'v_min': 70. / 3.6, 'v_nom': 80. / 3.6, 'min_intersection_length': 5e3}
 
 # problem_data['F'] = {'F0':1, 'F0p':0.9, 'F1':1./80, 'F1p':1./80*.9} # fuel model
 # problem_data['F'] = {'F0':0., 'F0p':1.-eta, 'F1':2./80, 'F1p':2./80*eta} # fuel model

@@ -60,7 +60,7 @@ class Route(Widget):
             x += (self.lat[i + 1] - self.lat[i]) * (current / self.links[i + 1])
             y += (self.lon[i + 1] - self.lon[i]) * (current / self.links[i + 1])
 
-        return (x, y)
+        return x, y
 
     def transform_data(self, lat, lon):
         a = (lat + self.parent.scroll_offset_x) * self.parent.zoom
@@ -70,4 +70,4 @@ class Route(Widget):
     def transform_points(self, pos):
         a = (pos[0] + self.parent.scroll_offset_x) * self.parent.zoom
         b = (pos[1] + self.parent.scroll_offset_y) * self.parent.zoom
-        return (a, b)
+        return a, b

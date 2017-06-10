@@ -1,13 +1,16 @@
 import heapq
 import random
 
-from clusteralg import get_two_hop_neighbors, delta_u, build_inverted_graph, change_to_follower, change_to_leader
+from clusteralg import get_two_hop_neighbors, get_delta_u, build_inverted_graph, change_to_follower, change_to_leader
 
 total_miss = 0
 total_update = 0
 
 
-class PlatooningMethod():
+class PlatooningMethod:
+    def __init__(self):
+        pass
+
     def select_node(self, nodes, gains, gain_heap):
         raise NotImplementedError("This method is not implemented")
 
@@ -19,6 +22,9 @@ class PlatooningMethod():
 
 
 class GreedyPlatooning(PlatooningMethod):
+    def __init__(self):
+        pass
+
     def __str__(self):
         return "greedy"
 
@@ -29,7 +35,8 @@ class GreedyPlatooning(PlatooningMethod):
         else:
             while 1:
                 (gain, node) = heapq.heappop(gain_heap)
-                if node != -1 or len(gain_heap) == 0: break
+                if node != -1 or len(gain_heap) == 0:
+                    break
 
         return node
 
@@ -46,7 +53,7 @@ class GreedyPlatooning(PlatooningMethod):
         # calculate and iterate of two hop neighbors
         neighbors = get_two_hop_neighbors(n, G, G_inv)
         for nb in neighbors:
-            gain = delta_u(nb, leaders, G, G_inv)
+            gain = get_delta_u(nb, leaders, G, G_inv)
 
             # update heap
             if gains[nb][0] != -gain:  # gain changed
@@ -59,7 +66,7 @@ class GreedyPlatooning(PlatooningMethod):
                 total_miss += 1
 
     def clustering(self, G, verbose=False, max_iter=1000000):
-        ######## init #########
+        # init
 
         LEADER = -1
         NONE = -2
@@ -71,19 +78,21 @@ class GreedyPlatooning(PlatooningMethod):
         counter = 0
         # caution: the list use negative gains for since it is a min heap
         # and we want to change the node with biggest gain
-        gains = {n: [-delta_u(n, leaders, G, G_inv), n] for n in nodes}
+        gains = {n: [-get_delta_u(n, leaders, G, G_inv), n] for n in nodes}
         gain_heap = []
         for key in gains:  # add all nodes with positive gain to the heap
-            if gains[key][0] < 0.: heapq.heappush(gain_heap, gains[key])
+            if gains[key][0] < 0.:
+                heapq.heappush(gain_heap, gains[key])
 
-        ######## loop #########
+        # loop
 
         while counter < max_iter:
             counter += 1  # iteration count
 
             # select a node and calculate its delta_u
             node = self.select_node(nodes, gains, gain_heap)
-            if node == -1: break
+            if node == -1:
+                break
 
             # update the role of the node
             if leaders[node] == LEADER:  # become a follower
@@ -93,7 +102,7 @@ class GreedyPlatooning(PlatooningMethod):
             # update the gains
             self.update_u(node, leaders, gains, gain_heap, G, G_inv)
 
-        ######### clean-up #########
+        # clean-up
 
         # check if all leaders have followers
         for n in G:
@@ -139,13 +148,13 @@ class RandomPlatooning(PlatooningMethod):
         # calculate and iterate of two hop neighbors
         neighbors = get_two_hop_neighbors(n, G, G_inv)
         for nb in neighbors:
-            gain = delta_u(nb, leaders, G, G_inv)
+            gain = get_delta_u(nb, leaders, G, G_inv)
             gains[nb] = [-gain, nb]  # new entry
 
     def clustering(self, G, verbose=False, max_iter=1000000):
         # node selection method: greedy, random
 
-        ######## init #########
+        # init
 
         LEADER = -1
         NONE = -2
@@ -157,16 +166,17 @@ class RandomPlatooning(PlatooningMethod):
         counter = 0
         # caution: the list use negative gains for since it is a min heap
         # and we want to change the node with biggest gain
-        gains = {n: [-delta_u(n, leaders, G, G_inv), n] for n in nodes}
+        gains = {n: [-get_delta_u(n, leaders, G, G_inv), n] for n in nodes}
 
-        ######## loop #########
+        # loop
 
         while counter < max_iter:
             counter += 1  # iteration count
 
             # select a node and calculate its delta_u
             node = self.select_node(nodes, gains, None)
-            if node == -1: break
+            if node == -1:
+                break
 
             # update the role of the node
             if leaders[node] == LEADER:  # become a follower
@@ -176,7 +186,7 @@ class RandomPlatooning(PlatooningMethod):
             # update the gains
             self.update_u(node, leaders, gains, None, G, G_inv)
 
-        ######### clean-up #########
+        # clean-up
 
         # check if all leaders have followers
         for n in G:
@@ -196,6 +206,9 @@ class RandomPlatooning(PlatooningMethod):
 
 
 class SubModularityPlatooning(PlatooningMethod):
+    def __init__(self):
+        pass
+
     def __str__(self):
         return "sub modularity"
 
@@ -235,7 +248,8 @@ class SubModularityPlatooning(PlatooningMethod):
 
         return real_followers, real_leaders, nodes, 1
 
-    def f(self, leaders, G):
+    @staticmethod
+    def f(leaders, G):
         G_inv = build_inverted_graph(G)
 
         followers = set(G.keys()).difference(leaders)
