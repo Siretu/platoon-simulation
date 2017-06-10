@@ -1,71 +1,13 @@
 # -*- coding: utf-8 -*-
 
-import cPickle as pkl
-import copy
-import os
-import random
 import sys
-import time
 
 import clusteralg as cl
 import constants
 import convex_optimization as cv
 import pairwise_planning as pp
-import route_calculation as rc
 from platooning.platooning_methods import GreedyPlatooning
-
-
-def build_path_data_sets(route_links, route_weights, start_times, arrival_dlines, active_trucks,
-                         start_poses=None):
-    path_data_sets = {}
-    for k in active_trucks:
-        path_data = {'path': route_links[k],
-                     'path_set': set(path_data['path']),
-                     'path_weights': route_weights[k],
-                     't_s': start_times[k],
-                     'arrival_dline': arrival_dlines[k]
-                     }
-        if start_poses is not None:
-            path_data['start_pos'] = start_poses[k]
-        else:
-            path_data['start_pos'] = {'i': 0, 'x': 0.}
-        path_data_sets[k] = path_data
-
-    return path_data_sets
-
-
-def save_routes_to_pkl(folder, routes):
-    for i in range(len(routes)):
-        f = open('{}{}.pkl'.format(folder, i), 'w')
-        pkl.dump(routes[i], f, protocol=pkl.HIGHEST_PROTOCOL)
-
-
-def get_path_data_sets(folder):
-    f = open('{}paths.pkl'.format(folder), 'r')
-    return pkl.load(f)
-
-
-def save_path_data_sets(path_data_set, folder):
-    f = open('{}paths.pkl'.format(folder), 'w')
-    pkl.dump(path_data_set, f, protocol=pkl.HIGHEST_PROTOCOL)
-
-
-def generate_routes(K, folder):
-    if not os.path.exists(folder):
-        os.makedirs(folder)
-    route_links, route_weights, K_set, routes = rc.get_routes_from_osrm(K, True)
-    active_trucks = copy.copy(K_set)
-
-    start_times = {k: random.random() * constants.start_interval for k in K_set}
-    # start_times = {0:0.14,1:0.14,3:0.01}
-    arrival_dlines = {k: start_times[k] + sum(route_weights[k]) / constants.v_nom for k in K_set}
-
-    # %%%%%% build coordination graph
-    # Calculate who can adapt to who
-    print 'building coordination graph'
-    path_data_sets = build_path_data_sets(route_links, route_weights, start_times, arrival_dlines, active_trucks)
-    save_routes_to_pkl(folder, routes)
-    save_path_data_sets(path_data_sets, folder)
+from route_calculation import get_path_data_sets
 
 
 def simulation(folder, method):
@@ -134,13 +76,6 @@ def main():
         for K in Ks:
             results[K] = simulation("./testing/testroutes/test100-3/", GreedyPlatooning())
             print_simulation_result(results[K])
-
-        f = open('./simres/{}__{}.pkl'.format(i, time.time()), 'w')
-        pkl.dump(results, f, protocol=pkl.HIGHEST_PROTOCOL)
-        f.close()
-
-        # bmp.scatter(0, 0, latlon=True)
-        # plot_results(results)
 
 
 if __name__ == "__main__":
