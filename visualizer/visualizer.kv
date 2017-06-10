@@ -1,0 +1,25 @@
+#:kivy 1.9.1
+
+<VisualizerMain>:
+    Label:
+        font_size: 70
+        center_x: root.width / 4
+        top: root.top - 50
+        text: "0sdefsdfsfggerhdbdgdrdg"
+
+    PlayButton:
+        pos: self.parent.center_x, 50
+
+<PlayButton>:
+    size: 200, 200
+    canvas:
+        Color:
+            rgb: (0, 0, 0)
+        Rectangle:
+            pos: self.parent.center_x - 30, self.y
+            size: 40, 100
+        Rectangle:
+            pos: self.parent.center_x + 30, self.y
+            size: 40, 100
+        Triangle:
+            points: self.parent.center_x - 30, 50, self.parent.center_x - 30, 150, self.parent.center_x + 45, 100
