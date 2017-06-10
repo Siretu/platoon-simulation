@@ -11,13 +11,7 @@ class PlatooningMethod:
     def __init__(self):
         pass
 
-    def select_node(self, nodes, gains, gain_heap):
-        raise NotImplementedError("This method is not implemented")
-
-    def update_u(self, n, leaders, gains, gain_heap, G, G_inv):
-        raise NotImplementedError("This method is not implemented")
-
-    def clustering(self, G, verbose=False, max_iter=1000000):
+    def clustering(self, G, verbose=False):
         raise NotImplementedError("This method is not implemented")
 
 
@@ -212,7 +206,7 @@ class SubModularityPlatooning(PlatooningMethod):
     def __str__(self):
         return "sub modularity"
 
-    def clustering(self, G, verbose=False, max_iter=1000000):
+    def clustering(self, G, verbose=False):
         X = [set()]
         Y = [set(G.keys())]
 
