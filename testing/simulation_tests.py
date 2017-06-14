@@ -1,12 +1,21 @@
 from __future__ import absolute_import
 
 import unittest
+import time
 
 from platooning.platooning_methods import GreedyPlatooning, RandomPlatooning, SubModularityPlatooning
 from run_simulation import simulation
 
 
 class TestSimulation(unittest.TestCase):
+    def setUp(self):
+        self.start = time.time()
+
+    def tearDown(self):
+        t = time.time() - self.start
+        print "%s: %.3f" % (self.id(), t)
+
+
     def test_100_1_greedy(self):
         result = simulation("./testroutes/test100-1/", GreedyPlatooning())
         self.assertAlmostEqual(result["f_relat_before_convex"], 0.0193179148343, delta=10 ** -10)

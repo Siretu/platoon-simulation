@@ -7,127 +7,46 @@ import constants
 import cPickle as pkl
 
 
-def find_route_intersection_old(route1, route2):
+def find_route_intersection(route1, route2):
     #  Gives first and last intersecting element on both routes
+    path1 = route1['path']
+    path2 = route2['path']
+    intersections = route1['path_set'] & route2['path_set']
 
-    r1_set = set(route1)
-    r2_set = set(route2)
-
-    r12_inters = r1_set & r2_set
-    inters_len = len(r12_inters)
-
-    #  print 'old',inters_len
-    if inters_len == 0:
+    if not intersections:
         return False
 
-    inters_el = r12_inters.pop()
-    r12_inters.add(inters_el)
+    def find_first_index(known_intersection):
+        ## Given a known intersection, find the indexes where route1 and route2 first intersect.
+        start_ind1 = np.where(path1 == known_intersection)[0][0]
+        start_ind2 = np.where(path2 == known_intersection)[0][0]
 
-    start_ind1 = route1.index(inters_el)
-    start_ind2 = route2.index(inters_el)
-    # backward search
-    ind1 = start_ind1
-    ind2 = start_ind2
-    while 1:
-        if ind1 == 0 or ind2 == 0:
-            break
-        elif route1[ind1 - 1] != route2[ind2 - 1]:
-            break
-        else:
-            ind1 -= 1
-            ind2 -= 1
-    ind1_s = ind1
-    ind2_s = ind2
-    # forward search
-    ind1 = start_ind1
-    ind2 = start_ind2
-    while 1:
-        if ind1 == len(route1) - 1 or ind2 == len(route2) - 1:
-            break
-        elif route1[ind1 + 1] != route2[ind2 + 1]:
-            break
-        else:
-            ind1 += 1
-            ind2 += 1
-    ind1_sp = ind1
-    ind2_sp = ind2
-
-    #  print 'old',((ind1_s,ind1_sp),(ind2_s,ind2_sp))
-
-    if ind1_s - ind1_sp == 0:
-        return False
-    else:
-        return (ind1_s, ind1_sp), (ind2_s, ind2_sp)
-
-
-def find_route_intersection(route1, route2, r1_set=None, r2_set=None):
-    #  Gives first and last intersecting element on both routes
-
-    if r1_set is None:
-        r1_set = set(route1)
-    if r2_set is None:
-        r2_set = set(route2)
-
-    r12_inters = r1_set & r2_set
-    inters_len = len(r12_inters)
-
-    #  print 'new',inters_len
-    if inters_len == 0:
-        return False
-
-    inters_el = r12_inters.pop()
-
-    #  r12_inters.add(inters_el)
-
-    def find_first_index():
-        start_ind1 = np.where(route1 == inters_el)[0][0]
-        start_ind2 = np.where(route2 == inters_el)[0][0]
-
+        # Look at the route with the shortest previous nodes, and search for previous intersections with the other route
         if start_ind1 >= start_ind2:
-            ind2 = np.where(route2[:start_ind2 + 1] == route1[start_ind1 - start_ind2:start_ind1 + 1])[0][0]
+            ind2 = np.where(path2[:start_ind2 + 1] == path1[start_ind1 - start_ind2:start_ind1 + 1])[0][0]
             ind1 = ind2 + (start_ind1 - start_ind2)
-        if start_ind1 < start_ind2:
-            ind1 = np.where(route1[:start_ind1 + 1] == route2[start_ind2 - start_ind1:start_ind2 + 1])[0][0]
+        elif start_ind1 < start_ind2:
+            ind1 = np.where(path1[:start_ind1 + 1] == path2[start_ind2 - start_ind1:start_ind2 + 1])[0][0]
             ind2 = ind1 + (start_ind2 - start_ind1)
-
-        # # backward search
-        #    ind1 = start_ind1
-        #    ind2 = start_ind2
-        #    while 1:
-        #      if ind1 == 0 or ind2 == 0:
-        #        break
-        #      elif route1[ind1-1] != route2[ind2-1]:
-        #        break
-        #      else:
-        #        ind1 -= 1
-        #        ind2 -= 1
-        #    ind1_s = ind1
-        #    ind2_s = ind2
 
         return ind1, ind2
 
-    ind1_s, ind2_s = find_first_index()
+    ind1_start, ind2_start = find_first_index(intersections.pop())
 
-    #  if ind1 < len(route1)-1 and ind2 < len(route2)-1:
-    #    if route1[ind1+1] != route2[ind2+1]:
-    #      return False
+    ind1_split = ind1_start + len(intersections)
+    ind2_split = ind2_start + len(intersections)
 
-    ind1_sp = ind1_s + inters_len - 1
-    ind2_sp = ind2_s + inters_len - 1
+    # Don't think this is necessary anymore
+    # if ind1_split >= path1.shape[0]:
+    #     ind1_split -= 1
+    #     if ind1_split >= path1.shape[0]:
+    #         return False
+    # if ind2_split >= path2.shape[0]:
+    #     ind2_split -= 1
+    #     if ind2_split >= path2.shape[0]:
+    #         return False
 
-    if ind1_sp >= route1.shape[0]:
-        ind1_sp -= 1
-        if ind1_sp >= route1.shape[0]:
-            return False
-    if ind2_sp >= route2.shape[0]:
-        ind2_sp -= 1
-        if ind2_sp >= route2.shape[0]:
-            return False
-
-
-            #  print 'new',((ind1_s,ind1_sp),(ind2_s,ind2_sp))
-
-    return (ind1_s, ind1_sp), (ind2_s, ind2_sp)
+    return (ind1_start, ind1_split), (ind2_start, ind2_split)
 
 
 def calculate_default(path_data):
@@ -347,44 +266,26 @@ def build_G_p(path_data_sets, default_plans):
         for i_l in xrange(i_f + 1, K):
             kl = K_set[i_l]
             kf = K_set[i_f]
-            intersection = find_route_intersection(path_data_sets[kl]['path'], path_data_sets[kf]['path'],
-                                                   path_data_sets[kl]['path_set'], path_data_sets[kf]['path_set'])
+            intersection = find_route_intersection(path_data_sets[kl], path_data_sets[kf])
             #      old_intersection = find_route_intersection_old(path_data_sets[kl]['path'],path_data_sets[kf]['path'])
             if intersection:
                 intersection_length = np.sum(
                     path_data_sets[kl]['path_weights'][intersection[0][0]:intersection[0][1] + 1])
-                if intersection_length < constants.min_intersection_length:
-                    intersection = False
-
-                    #      new_intersection = intersection
-                    #      if new_intersection != False and old_intersection == False:
-                    ##        plot_two_routes(kl,kf,old_intersection,new_intersection)
-                    #        print 'Returns wrong intersection'
-                    #        if new_intersection[0][1] - new_intersection[0][0] == 0:
-                    #          print 'The intersection is just one link that is {} long'.format(path_data_sets[kl]['path_weights'][intersection[0][0]])
-                    #      if new_intersection != False and old_intersection != False:
-                    #        if new_intersection[0][0] != old_intersection[0][0] or new_intersection[0][1] != old_intersection[0][1] or new_intersection[1][0] != old_intersection[1][0] or new_intersection[1][1] != old_intersection[1][1]:
-                    #          print 'WARNING does not match'
-                    #          print 'old',old_intersection
-                    #          print 'new',new_intersection
-                    #          plot_two_routes(kl,kf,old_intersection,new_intersection)
-                    #      intersection = old_intersection
-
-            if intersection:
-                res = calculate_adaptation(path_data_sets[kl], path_data_sets[kf], intersection, default_plans[kl],
-                                           default_plans[kf])
-                if res != -1:
-                    f, df, ada_d_s_opt, ada_d_sp_opt, t_m_opt, t_sp_opt, t_a_opt = res
-                    if df > 0.:
-                        G_p[kf][kl] = df
-                # swap role
-                intersection = (intersection[1], intersection[0])
-                res = calculate_adaptation(path_data_sets[kf], path_data_sets[kl], intersection, default_plans[kf],
-                                           default_plans[kl])
-                if res != -1:
-                    f, df, ada_d_s_opt, ada_d_sp_opt, t_m_opt, t_sp_opt, t_a_opt = res
-                    if df > 0.:
-                        G_p[kl][kf] = df
+                if intersection_length >= constants.min_intersection_length:
+                    res = calculate_adaptation(path_data_sets[kl], path_data_sets[kf], intersection, default_plans[kl],
+                                               default_plans[kf])
+                    if res != -1:
+                        f, df, ada_d_s_opt, ada_d_sp_opt, t_m_opt, t_sp_opt, t_a_opt = res
+                        if df > 0.:
+                            G_p[kf][kl] = df
+                    # swap role
+                    intersection = (intersection[1], intersection[0])
+                    res = calculate_adaptation(path_data_sets[kf], path_data_sets[kl], intersection, default_plans[kf],
+                                               default_plans[kl])
+                    if res != -1:
+                        f, df, ada_d_s_opt, ada_d_sp_opt, t_m_opt, t_sp_opt, t_a_opt = res
+                        if df > 0.:
+                            G_p[kl][kf] = df
     return G_p
 
 
@@ -441,7 +342,7 @@ def retrieve_adapted_plans(path_data_sets, G_p, leaders, default_plans):
         if leaders[k] != LEADER and leaders[k] != NONE:
             kf = k
             kl = leaders[k]
-            intersection = find_route_intersection(path_data_sets[kl]['path'], path_data_sets[kf]['path'])
+            intersection = find_route_intersection(path_data_sets[kl], path_data_sets[kf])
             #      if intersection != False:
             f, df, ada_d_s_opt, ada_d_sp_opt, t_m_opt, t_sp_opt, t_a_opt = calculate_adaptation(path_data_sets[kl],
                                                                                                 path_data_sets[kf],
@@ -465,7 +366,7 @@ def total_fuel_consumption(plans):
     return f_total
 
 
-def total_fuel_comsumption_spontanous_platooning(path_data_sets, default_plans, time_gap):
+def total_fuel_comsumption_spontaneous_platooning(path_data_sets, default_plans, time_gap):
     # assumes for now that the trucks start at the beginning of the first link
     # TODO: There might be a problem with the nominal velocity.
 
