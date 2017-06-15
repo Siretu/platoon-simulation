@@ -47,7 +47,7 @@ def one_simulation(K):
 
     # %%%%%% joint optimization for all clusters
     print 'starting convex optimization'
-    plans = pp.retrieve_adapted_plans(path_data_sets, G_p, leaders, default_plans)
+    plans = pp.retrieve_adapted_plans(path_data_sets, leaders, default_plans)
     followers_dict = cv.get_followers(N_l, leaders)
 
     def plot_one_group(n_l):

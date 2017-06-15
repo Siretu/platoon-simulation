@@ -24,7 +24,7 @@ def simulation(folder, method):
 
     # Joint optimization for all clusters
     print "convex optimization"
-    plans = pp.retrieve_adapted_plans(path_data_sets, G_p, leaders, default_plans)
+    plans = pp.retrieve_adapted_plans(path_data_sets, leaders, default_plans)
     T_stars, f_opt_total, f_init_total = cv.optimize_all_clusters(leaders, N_l, plans, path_data_sets)
 
     # Calculate fuel consumption

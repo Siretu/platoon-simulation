@@ -331,7 +331,7 @@ def get_default_plans(path_data_sets):
     return default_plans
 
 
-def retrieve_adapted_plans(path_data_sets, G_p, leaders, default_plans):
+def retrieve_adapted_plans(path_data_sets, leaders, default_plans):
     # calculates the selected adapted plans
 
     LEADER = -1
