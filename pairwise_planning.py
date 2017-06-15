@@ -289,39 +289,6 @@ def build_G_p(path_data_sets, default_plans):
     return G_p
 
 
-
-
-def plot_two_routes(k1, k2, intersec_old, intersec_new):
-    # for debugging only
-
-    f = open('./testroutes/{}.pkl'.format(k1))
-    route1_data = pkl.load(f)
-    f.close()
-
-    f = open('./testroutes/{}.pkl'.format(k2))
-    route2_data = pkl.load(f)
-    f.close()
-
-    plt.figure()
-    plt.plot(route1_data['node_coords_lon'], route1_data['node_coords_lat'], route2_data['node_coords_lon'],
-             route2_data['node_coords_lat'])
-    plt.plot(route1_data['node_coords_lon'][0], route1_data['node_coords_lat'][0], '+',
-             route2_data['node_coords_lon'][0], route2_data['node_coords_lat'][0], '+', markersize=20)
-    if intersec_old:
-        plt.plot(route1_data['node_coords_lon'][intersec_old[0][0]],
-                 route1_data['node_coords_lat'][intersec_old[0][0]], '+',
-                 route1_data['node_coords_lon'][intersec_old[0][1]],
-                 route1_data['node_coords_lat'][intersec_old[0][1]], '+', markersize=20)
-    if intersec_new:
-        plt.plot(route1_data['node_coords_lon'][intersec_new[0][0]],
-                 route1_data['node_coords_lat'][intersec_new[0][0]], '*',
-                 route1_data['node_coords_lon'][intersec_new[0][1]],
-                 route1_data['node_coords_lat'][intersec_new[0][1]], '*', markersize=20)
-    plt.show(block=False)
-
-    return
-
-
 def get_default_plans(path_data_sets):
     default_plans = {}
     for k in path_data_sets:
@@ -366,7 +333,7 @@ def total_fuel_consumption(plans):
     return f_total
 
 
-def total_fuel_comsumption_spontaneous_platooning(path_data_sets, default_plans, time_gap):
+def total_fuel_consumption_spontaneous_platooning(path_data_sets, default_plans, time_gap):
     # assumes for now that the trucks start at the beginning of the first link
     # TODO: There might be a problem with the nominal velocity.
 
@@ -416,7 +383,7 @@ def total_fuel_comsumption_spontaneous_platooning(path_data_sets, default_plans,
     return total_f
 
 
-def total_fuel_comsumption_no_time_constraints(path_data_sets, default_plans, time_gap):
+def total_fuel_consumption_no_time_constraints(path_data_sets, default_plans, time_gap):
     # assumes for now that the trucks start at the beginning of the first link
     # calculates the fuel consumption if all trucks that share a link platoon
 
@@ -449,43 +416,3 @@ def total_fuel_comsumption_no_time_constraints(path_data_sets, default_plans, ti
         total_f += calc_platoon_f(platoon_size, weight)
 
     return total_f
-
-
-def plot_preference_graph_3D(G, pos):
-    fig = plt.figure()
-    ax = fig.gca(projection='3d')
-    for i in G:
-        ax.plot([pos[i][0]], [pos[i][1]], [pos[i][2]], '*k')
-
-    for i, outgoing in G.iteritems():
-        for j in outgoing:
-            ax.plot([pos[i][0], pos[j][0]], [pos[i][1], pos[j][1]], [pos[i][2], pos[j][2]], '-k')
-    plt.draw()  # pyplot draw()
-    plt.show(block=False)
-    return
-
-    # def single_truck_fuel_consumption(path,v_nom):
-    #  F0 = constants.F0
-    #  F1 = constants.F1
-    #  G_r = constants.G_r
-    #
-    #  path_weights = [G_r[node1][node2] for (node1,node2) in zip(path[0:-1],path[1:])]
-    #  path_L = sum(path_weights)
-    #
-    #  f = (F0 + F1*v_nom)*path_L
-    #
-    #  return f
-    #
-    # def total_fuel_consumption_no_coordination(paths,v_nom):
-    #  f_tot = 0
-    #  for path in paths:
-    #    f_tot += single_truck_fuel_consumption(path,v_nom)
-    #
-    #  return f_tot
-    #
-    # def total_fuel_savings_spontanous_platooning(paths,start_times,time_gap,no_plat_f):
-    #
-    #  total_fuel = total_fuel_comsumption_spontanous_platooning(paths,start_times,time_gap)
-    #  fs = (no_plat_f - total_fuel)/no_plat_f
-    #
-    #  return fs

@@ -33,9 +33,9 @@ def simulation(folder, method):
     f_relat_before_convex = (f_total_default - f_total_before_convex) / f_total_default
     f_total_after_convex = float(f_total_before_convex - (f_init_total - f_opt_total))
     f_relat_after_convex = (f_total_default - f_total_after_convex) / f_total_default
-    f_total_spont_plat = pp.total_fuel_comsumption_spontaneous_platooning(path_data_sets, default_plans, constants.time_gap)
+    f_total_spont_plat = pp.total_fuel_consumption_spontaneous_platooning(path_data_sets, default_plans, constants.time_gap)
     f_relat_spont_plat = (f_total_default - f_total_spont_plat) / f_total_default
-    f_total_no_time = pp.total_fuel_comsumption_no_time_constraints(path_data_sets, default_plans, constants.time_gap)
+    f_total_no_time = pp.total_fuel_consumption_no_time_constraints(path_data_sets, default_plans, constants.time_gap)
     f_relat_no_time = (f_total_default - f_total_no_time) / f_total_default
 
     results['f_relat_spont_plat'] = f_relat_spont_plat
