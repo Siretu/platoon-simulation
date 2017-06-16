@@ -17,7 +17,7 @@ def plot(K):
     print 'building coordination graph'
     default_plans = pp.get_default_plans(path_data_sets)
 
-    G_p = pp.build_G_p(path_data_sets, default_plans)
+    G_p = pp.build_graph(path_data_sets, default_plans)
 
     N_f_gr, N_l_gr, leaders_gr, counter_gr = GreedyPlatooning().clustering(G_p)
     # create adjecancy matrix

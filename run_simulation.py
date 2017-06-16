@@ -3,7 +3,7 @@
 import sys
 
 import clusteralg as cl
-import constants
+from constants import TIME_GAP
 import convex_optimization as cv
 import pairwise_planning as pp
 from platooning.platooning_methods import GreedyPlatooning
@@ -16,7 +16,7 @@ def simulation(folder, method):
     path_data_sets = get_path_data_sets(folder)
     default_plans = pp.get_default_plans(path_data_sets)
     print "computing the coordination graph"
-    G_p = pp.build_G_p(path_data_sets, default_plans)
+    G_p = pp.build_graph(path_data_sets, default_plans)
 
     # Clustering
     print "clustering"
@@ -33,9 +33,9 @@ def simulation(folder, method):
     f_relat_before_convex = (f_total_default - f_total_before_convex) / f_total_default
     f_total_after_convex = float(f_total_before_convex - (f_init_total - f_opt_total))
     f_relat_after_convex = (f_total_default - f_total_after_convex) / f_total_default
-    f_total_spont_plat = pp.total_fuel_consumption_spontaneous_platooning(path_data_sets, default_plans, constants.time_gap)
+    f_total_spont_plat = pp.total_fuel_consumption_spontaneous_platooning(path_data_sets, default_plans, TIME_GAP)
     f_relat_spont_plat = (f_total_default - f_total_spont_plat) / f_total_default
-    f_total_no_time = pp.total_fuel_consumption_no_time_constraints(path_data_sets, default_plans, constants.time_gap)
+    f_total_no_time = pp.total_fuel_consumption_no_time_constraints(path_data_sets, default_plans, TIME_GAP)
     f_relat_no_time = (f_total_default - f_total_no_time) / f_total_default
 
     results['f_relat_spont_plat'] = f_relat_spont_plat

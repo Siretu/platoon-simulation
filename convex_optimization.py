@@ -11,11 +11,7 @@ import cvxopt as co
 import matplotlib.pyplot as plt
 import numpy as np
 
-import constants
-
-LEADER = -1
-NONE = -2
-
+from constants import LEADER, NONE, V_MAX, V_MIN, V_NOM, F0, F0p, F1, F1p
 
 def get_W_n_I_msp(leader, followers, start_times, arrival_dlines, arrival_times, merge_dists, split_dists, merge_times,
                   split_times, default_speed):
@@ -75,12 +71,12 @@ def get_W_n_I_msp_simple_call(leader, followers, path_data_sets, plans):
 
     start_times = {k: path_data_sets[k]['t_s'] for k in [leader] + followers}
     arrival_dlines = {k: path_data_sets[k]['arrival_dline'] for k in [leader] + followers}
-    arrival_times = {k: plans[k]['t_a'] for k in [leader] + followers}
-    merge_dists = {k: plans[k]['d_s'] for k in followers}
-    split_dists = {k: plans[k]['d_sp'] for k in followers}
-    merge_times = {k: plans[k]['t_m'] for k in followers}
-    split_times = {k: plans[k]['t_sp'] for k in followers}
-    default_speed = constants.v_nom
+    arrival_times = {k: plans[k].arrival_time for k in [leader] + followers}
+    merge_dists = {k: plans[k].merge_distance for k in followers}
+    split_dists = {k: plans[k].split_distance for k in followers}
+    merge_times = {k: plans[k].merge_time for k in followers}
+    split_times = {k: plans[k].split_time for k in followers}
+    default_speed = V_NOM
     # TODO: adapt to leader specific speed
 
     return get_W_n_I_msp(leader, followers, start_times, arrival_dlines, arrival_times, merge_dists, split_dists,
@@ -106,8 +102,8 @@ def get_P_n(merge_dists, split_dists, W_n, leader, followers):
 def get_P_n_simple_call(W_n, leader, followers, plans):
     # reformates data and calls get_P_n
 
-    merge_dists = {k: plans[k]['d_s'] for k in followers}
-    split_dists = {k: plans[k]['d_sp'] for k in followers}
+    merge_dists = {k: plans[k].merge_distance for k in followers}
+    split_dists = {k: plans[k].split_distance for k in followers}
     return get_P_n(merge_dists, split_dists, W_n, leader, followers)
 
 
@@ -233,11 +229,11 @@ def get_F_vec(P_n, leader, followers):
     F1_vec = []
     for t in dict_to_array(P_n, leader, followers):
         if t:
-            F0_vec.append(constants.F0p)
-            F1_vec.append(constants.F1p)
+            F0_vec.append(F0p)
+            F1_vec.append(F1p)
         else:
-            F0_vec.append(constants.F0)
-            F1_vec.append(constants.F1)
+            F0_vec.append(F0)
+            F1_vec.append(F1)
 
     F0_vec = np.array(F0_vec)
     F1_vec = np.array(F1_vec)
@@ -300,11 +296,11 @@ def optimize_cluster(leader, followers, path_data_sets, plans):
         print 'total route lenghts do not match. difference: {}'.format(cluster_route_length_ref - cluster_route_length)
 
     # adapt data
-    v_max = constants.v_max
-    v_min = constants.v_min
+    v_max = V_MAX
+    v_min = V_MIN
     start_times = {k: path_data_sets[k]['t_s'] for k in [leader] + followers}
     arrival_dlines = {k: path_data_sets[k]['arrival_dline'] for k in [leader] + followers}
-    arrival_times = {k: plans[k]['t_a'] for k in [leader] + followers}
+    arrival_times = {k: plans[k].arrival_time for k in [leader] + followers}
 
     T_star, obj_opt, obj_init = solve(W_n, P_n, T_n, leader, followers, v_min, v_max, start_times, arrival_dlines,
                                       arrival_times, I_m, I_sp)
@@ -401,12 +397,12 @@ def get_platoon_size_stats_one_cluster(leader, followers, path_data_sets, plans)
 
     start_times = {k: path_data_sets[k]['t_s'] for k in [leader] + followers}
     arrival_dlines = {k: path_data_sets[k]['arrival_dline'] for k in [leader] + followers}
-    arrival_times = {k: plans[k]['t_a'] for k in [leader] + followers}
-    merge_dists = {k: plans[k]['d_s'] for k in followers}
-    split_dists = {k: plans[k]['d_sp'] for k in followers}
-    merge_times = {k: plans[k]['t_m'] for k in followers}
-    split_times = {k: plans[k]['t_sp'] for k in followers}
-    default_speed = constants.v_nom
+    arrival_times = {k: plans[k].arrival_time for k in [leader] + followers}
+    merge_dists = {k: plans[k].merge_distance for k in followers}
+    split_dists = {k: plans[k].split_distance for k in followers}
+    merge_times = {k: plans[k].merge_time for k in followers}
+    split_times = {k: plans[k].split_time for k in followers}
+    default_speed = V_NOM
 
     min_seg_dur = 1e-6  # minmum duration of a segment to compensate for numerical inaccuracy
 
@@ -425,16 +421,16 @@ def get_platoon_size_stats_one_cluster(leader, followers, path_data_sets, plans)
     active_trucks = {leader}
     i_cur = 0
     for poi in merge_order:
-        time, truck, maneuvre = poi
+        time, truck, maneuver = poi
         if time > last_time + min_seg_dur:  # we've advanced in time --> add segment to all active trucks
             curr_W_n = (time - last_time) * default_speed
             for k in active_trucks:
                 stats[len(active_trucks)] += curr_W_n
             i_cur += 1
 
-        if maneuvre == 'M':
+        if maneuver == 'M':
             active_trucks.add(truck)
-        if maneuvre == 'Sp':
+        if maneuver == 'Sp':
             active_trucks.remove(truck)
 
         last_time = time

@@ -1,7 +1,7 @@
-v_max = 90. / 3.6
-v_min = 70. / 3.6
-v_nom = 80. / 3.6
-min_intersection_length = 5e3
+V_MAX = 90. / 3.6
+V_MIN = 70. / 3.6
+V_NOM = 80. / 3.6
+MIN_INTERSECTION_LENGTH = 5e3
 
 # problem_data['F'] = {'F0':1, 'F0p':0.9, 'F1':1./80, 'F1p':1./80*.9} # fuel model
 # problem_data['F'] = {'F0':0., 'F0p':1.-eta, 'F1':2./80, 'F1p':2./80*eta} # fuel model
@@ -30,17 +30,15 @@ eta = 0.6
 # todo: fill in the calculations for F0,...
 
 # v_nom = problem_data['v_nom']/3.6
-F0 = bar_F0 - bar_F2 * v_nom ** 2
-F1 = 2 * bar_F2 * v_nom
-F0p = bar_F0 - eta * bar_F2 * v_nom ** 2
-F1p = 2 * eta * bar_F2 * v_nom
+F0 = bar_F0 - bar_F2 * V_NOM ** 2
+F1 = 2 * bar_F2 * V_NOM
+F0p = bar_F0 - eta * bar_F2 * V_NOM ** 2
+F1p = 2 * eta * bar_F2 * V_NOM
 # adapt to km and h
 # F0 = F0*1000. # m --> km
 # F0p = F0p*1000.
 # F1 = F1*1000./3.6 # m/s --> km/h
 # F1p = F1p*1000./3.6
-
-F = {'F0': F0, 'F0p': F0p, 'F1': F1, 'F1p': F1p}  # fuel model
 
 # Savings with this fuel model at v_nom 0.15913792711482916 (F0+F1*v_nom - F0p - F1p*v_nom)/(F0 + F1*v_nom)
 
@@ -49,9 +47,12 @@ F = {'F0': F0, 'F0p': F0p, 'F1': F1, 'F1p': F1p}  # fuel model
 # problem_data['K'] = [0,1,3] #range(K) # trucks
 # active_trucks = [0,1,3] #range(K)
 
-eps = 1e-6  # threshold to consider to positions coinciding
+EPS = 1e-6  # threshold to consider to positions coinciding
 
-start_interval = 2. * 3600
+START_INTERVAL = 2. * 3600
 
 # time gap for spontaneous platooning
-time_gap = 60.  # one minute
+TIME_GAP = 60.  # one minute
+
+LEADER = -1
+NONE = -2

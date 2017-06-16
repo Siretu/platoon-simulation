@@ -1,10 +1,22 @@
 import math
-
-import matplotlib.pyplot as plt
 import numpy as np
+from constants import NONE, LEADER, V_MAX, V_MIN, V_NOM, F0, F0p, F1, F1p, EPS, MIN_INTERSECTION_LENGTH
+from clusteralg import ClusterGraph
 
-import constants
-import cPickle as pkl
+
+class PlatoonPlan:
+    # Fuel consumption, fuel difference, distance to merge, distance to split, merge time, split time, arrival time
+    def __init__(self, fuel, fuel_difference, merge_distance, split_distance, merge_time, split_time, arrival_time):
+        self.fuel = fuel
+        self.fuel_diff = fuel_difference
+        self.merge_distance = merge_distance
+        self.split_distance = split_distance
+        self.merge_time = merge_time
+        self.split_time = split_time
+        self.arrival_time = arrival_time
+        self.type = None
+        self.leader = None
+        self.speed = None
 
 
 def find_route_intersection(route1, route2):
@@ -62,25 +74,22 @@ def calculate_default(path_data):
 
     v_d = path_L / (t_d - t_s)  # speed to arrive exactly at the deadline
 
-    if v_d > constants.v_max:
+    if v_d > V_MAX:
         print "Warning: a truck cannot make its deadline!"
-    if v_d <= constants.v_nom:
-        t_a = path_L / constants.v_nom + t_s
-        v_default = constants.v_nom
-    if v_d > constants.v_nom:
+    if v_d <= V_NOM:
+        t_a = path_L / V_NOM + t_s
+        v_default = V_NOM
+    if v_d > V_NOM:
         t_a = path_L / v_d + t_s
         v_default = v_d
 
-    f = (constants.F0 + constants.F1 * v_default) * path_L
+    f = (F0 + F1 * v_default) * path_L
 
     return t_a, v_default, f
 
 
 def calculate_adaptation(ref_path_data, ada_path_data, intersection, ref_default_plan, ada_default_plan, verbose=False):
     #  returns -1 if platooning is not feasible or beneficial, and the fuel saving (positive) if platooning is beneficial
-    v_min = constants.v_min
-    v_max = constants.v_max
-    v_nom = constants.v_nom
 
     ref_path = ref_path_data['path']
     ref_path_weights = ref_path_data['path_weights']
@@ -89,7 +98,7 @@ def calculate_adaptation(ref_path_data, ada_path_data, intersection, ref_default
     ref_t_d = ref_path_data['arrival_dline']
     ref_merge_ind = intersection[0][0]
     ref_split_ind = intersection[0][1]
-    ref_v_def = ref_default_plan['v_default']
+    ref_v_def = ref_default_plan.speed
     #  ref_f_def = ref_default_plan['f']
     #  ref_t_a_def = ref_default_plan['t_a']
 
@@ -101,20 +110,20 @@ def calculate_adaptation(ref_path_data, ada_path_data, intersection, ref_default
     ada_merge_ind = intersection[1][0]
     ada_split_ind = intersection[1][1]
     #  ada_v_def = ada_default_plan['v_default']
-    ada_f_def = ada_default_plan['f']
+    ada_f_def = ada_default_plan.fuel
     #  ada_t_a_def = ada_default_plan['t_a']
 
     # check if times overlap at all
     if ref_t_d < ada_t_s or ada_t_d < ref_t_s:
         if verbose:
             print 'Cannot platoon since the time intervals do not overlap!'
-        return -1
+        return
 
-    Delta_F0 = constants.F0 - constants.F0p
+    Delta_F0 = F0 - F0p
     v_star_slow = max(
-        [v_nom * (1 - math.sqrt(1 - constants.F1p / constants.F1 + Delta_F0 / (constants.F1 * v_nom))), v_min])
+        [V_NOM * (1 - math.sqrt(1 - F1p / F1 + Delta_F0 / (F1 * V_NOM))), V_MIN])
     v_star_fast = min(
-        [v_nom * (1 + math.sqrt(1 - constants.F1p / constants.F1 + Delta_F0 / (constants.F1 * v_nom))), v_max])
+        [V_NOM * (1 + math.sqrt(1 - F1p / F1 + Delta_F0 / (F1 * V_NOM))), V_MAX])
 
     #  try:
     ref_end_pos = {'i': len(ref_path_weights) - 1, 'x': ref_path_weights[-1]}
@@ -130,11 +139,11 @@ def calculate_adaptation(ref_path_data, ada_path_data, intersection, ref_default
     if get_distance(ref_path_weights, ref_start_pos, ref_last_split_pos) == 0.:  # we have passed the common part
         if verbose:
             print 'Cannot platoon since the leader has passed the common part!'
-        return -1
+        return
     if get_distance(ada_path_weights, ada_start_pos, ada_last_split_pos) == 0.:
         if verbose:
             print 'Cannot platoon since the follower has passed the common part!'
-        return -1
+        return
 
     ref_path_L = get_distance(ref_path_weights, ref_start_pos, ref_end_pos)
     ada_path_L = get_distance(ada_path_weights, ada_start_pos, ada_end_pos)
@@ -147,17 +156,17 @@ def calculate_adaptation(ref_path_data, ada_path_data, intersection, ref_default
     ada_d_s = get_distance(ada_path_weights, ada_start_pos, ada_first_merge_pos)
     ref_d_sp = ref_path_L - ref_d_s - d_p
     ada_d_sp = ada_path_L - ada_d_s - d_p
-    if abs(ada_d_sp) < constants.eps:
+    if abs(ada_d_sp) < EPS:
         ada_d_sp = 0.
-    if abs(ref_d_sp) < constants.eps:
+    if abs(ref_d_sp) < EPS:
         ref_d_sp = 0.
 
     # they might have the same start position
     if ref_path[ref_start_pos['i']] == ada_path[ada_start_pos['i']] and abs(
-                    ref_start_pos['x'] - ada_start_pos['x']) < constants.eps and ref_t_s == ada_t_s:
+                    ref_start_pos['x'] - ada_start_pos['x']) < EPS and ref_t_s == ada_t_s:
         ada_d_s_opt = 0.
         t_m_opt = ada_t_s  # merge time is now
-        v_star_s = v_nom  # does not make the difference, just defined to not run into errors later
+        v_star_s = V_NOM  # does not make the difference, just defined to not run into errors later
     else:  # they need to coordinate
         # //////// Merging //////////
 
@@ -183,7 +192,7 @@ def calculate_adaptation(ref_path_data, ada_path_data, intersection, ref_default
         if ada_d_s_opt > ada_d_s + d_p:
             if verbose:
                 print 'Cannot platoon since the merge point would be past the common segment!'
-            return -1
+            return
 
     # //////// Splitting //////////
 
@@ -195,7 +204,7 @@ def calculate_adaptation(ref_path_data, ada_path_data, intersection, ref_default
     if t_earl > ada_t_d:  # arrival before deadline not possible with platooning
         if verbose:
             print 'Cannot platoon since we cannot arrive before the deadline with platooning!'
-        return -1
+        return
 
     platoon_dist_left = total_dist_left - ada_d_sp
 
@@ -204,13 +213,13 @@ def calculate_adaptation(ref_path_data, ada_path_data, intersection, ref_default
     t_sp_last_max = ada_t_d - ada_d_sp / v_star_fast
     if t_sp_last <= t_sp_last_max:  # can platoon until the end
         ada_d_sp_opt = ada_d_sp
-        if ada_d_sp > constants.eps:
+        if ada_d_sp > EPS:
             v_d = ada_d_sp_opt / (ada_t_d - t_sp_last)  # speed to arrive at the deadline
-            v_star_sp = max([v_min, v_d])  # go at least minimal speed
+            v_star_sp = max([V_MIN, v_d])  # go at least minimal speed
             t_a_opt = t_sp_last + ada_d_sp_opt / v_star_sp
         else:  # platoon until the end of the journey of ada
             t_a_opt = t_sp_last
-            v_star_sp = v_nom  # does not make a difference
+            v_star_sp = V_NOM  # does not make a difference
     elif t_sp_last >= t_sp_last_max:  # split early
         ada_d_sp_opt = (ada_t_d - t_m_opt - total_dist_left / ref_v_def) / (1. / v_star_fast - 1. / ref_v_def)
         v_star_sp = v_star_fast
@@ -219,24 +228,22 @@ def calculate_adaptation(ref_path_data, ada_path_data, intersection, ref_default
 
     # calculate the fuel consumptions
     ada_d_p_opt = ada_path_L - ada_d_s_opt - ada_d_sp_opt
-    f = (constants.F0 + constants.F1 * v_star_s) * ada_d_s_opt + (
-                                                                 constants.F0 + constants.F1 * v_star_sp) * ada_d_sp_opt + (
-                                                                                                                           constants.F0p + constants.F1p * ref_v_def) * ada_d_p_opt
+    f = (F0 + F1 * v_star_s) * ada_d_s_opt + (F0 + F1 * v_star_sp) * ada_d_sp_opt + (F0p + F1p * ref_v_def) * ada_d_p_opt
 
     if verbose:
-        t_a_test = ada_t_s + ada_d_s_opt / v_star_s + ada_d_sp_opt / v_star_sp + (
-                                                                                 ada_path_L - ada_d_s_opt - ada_d_sp_opt) / ref_v_def
+        t_a_test = ada_t_s + ada_d_s_opt / v_star_s + ada_d_sp_opt / v_star_sp + (ada_path_L - ada_d_s_opt - ada_d_sp_opt) / ref_v_def
         print 'differenece between computed arrival time and test arrival time: {}\n (Should be zero!)'.format(
             t_a_test - t_a_opt)
 
     if f < ada_f_def:
         if verbose:
             print 'platooning is better'
-        return f, ada_f_def - f, ada_d_s_opt, ada_d_sp_opt, t_m_opt, t_sp_opt, t_a_opt
+        # Fuel consumption, fuel difference, distance to merge, distance to split, merge time, split time, arrival time
+        return PlatoonPlan(f, ada_f_def - f, ada_d_s_opt, ada_d_sp_opt, t_m_opt, t_sp_opt, t_a_opt)
     else:
         if verbose:
             print 'not platooning is better'
-        return -1
+        return
 
 
 def get_distance(path_weights, start_pos, end_pos):
@@ -257,10 +264,10 @@ def get_distance(path_weights, start_pos, end_pos):
     return dist
 
 
-def build_G_p(path_data_sets, default_plans):
+def build_graph(path_data_sets, default_plans):
     K = len(path_data_sets)
     K_set = list(path_data_sets)  # truck indices set
-    G_p = {key: {} for key in K_set}
+    graph = ClusterGraph(K_set)
 
     for i_f in xrange(K):
         for i_l in xrange(i_f + 1, K):
@@ -271,39 +278,36 @@ def build_G_p(path_data_sets, default_plans):
             if intersection:
                 intersection_length = np.sum(
                     path_data_sets[kl]['path_weights'][intersection[0][0]:intersection[0][1] + 1])
-                if intersection_length >= constants.min_intersection_length:
-                    res = calculate_adaptation(path_data_sets[kl], path_data_sets[kf], intersection, default_plans[kl],
+                if intersection_length >= MIN_INTERSECTION_LENGTH:
+                    plan = calculate_adaptation(path_data_sets[kl], path_data_sets[kf], intersection, default_plans[kl],
                                                default_plans[kf])
-                    if res != -1:
-                        f, df, ada_d_s_opt, ada_d_sp_opt, t_m_opt, t_sp_opt, t_a_opt = res
-                        if df > 0.:
-                            G_p[kf][kl] = df
+                    if plan:
+                        if plan.fuel_diff > 0.:
+                            graph.add(kf, kl, plan)
                     # swap role
                     intersection = (intersection[1], intersection[0])
-                    res = calculate_adaptation(path_data_sets[kf], path_data_sets[kl], intersection, default_plans[kf],
+                    plan = calculate_adaptation(path_data_sets[kf], path_data_sets[kl], intersection, default_plans[kf],
                                                default_plans[kl])
-                    if res != -1:
-                        f, df, ada_d_s_opt, ada_d_sp_opt, t_m_opt, t_sp_opt, t_a_opt = res
-                        if df > 0.:
-                            G_p[kl][kf] = df
-    return G_p
+                    if plan:
+                        if plan.fuel_diff > 0.:
+                            graph.add(kl, kf, plan)
+    return graph
 
 
 def get_default_plans(path_data_sets):
     default_plans = {}
     for k in path_data_sets:
         t_a, v_default, f = calculate_default(path_data_sets[k])
-        default_plans[k] = {'t_a': t_a, 'v_default': v_default, 'f': f, 'type': 'default'}
+        # default_plans[k] = {'t_a': t_a, 'v_default': v_default, 'f': f, 'type': 'default'}
+        default_plans[k] = PlatoonPlan(f, None, None, None, None, None, t_a)
+        default_plans[k].type = 'default'
+        default_plans[k].speed = v_default
 
     return default_plans
 
 
 def retrieve_adapted_plans(path_data_sets, leaders, default_plans):
     # calculates the selected adapted plans
-
-    LEADER = -1
-    NONE = -2
-
     plans = {}
     for k in leaders:
         if leaders[k] != LEADER and leaders[k] != NONE:
@@ -311,13 +315,16 @@ def retrieve_adapted_plans(path_data_sets, leaders, default_plans):
             kl = leaders[k]
             intersection = find_route_intersection(path_data_sets[kl], path_data_sets[kf])
             #      if intersection != False:
-            f, df, ada_d_s_opt, ada_d_sp_opt, t_m_opt, t_sp_opt, t_a_opt = calculate_adaptation(path_data_sets[kl],
+            plan = calculate_adaptation(path_data_sets[kl],
                                                                                                 path_data_sets[kf],
                                                                                                 intersection,
                                                                                                 default_plans[kl],
                                                                                                 default_plans[kf])
-            plans[k] = {'f': f, 'df': df, 'd_s': ada_d_s_opt, 'd_sp': ada_d_sp_opt, 't_m': t_m_opt, 't_sp': t_sp_opt,
-                        't_a': t_a_opt, 'type': 'adapted', 'leader': leaders[k]}
+            # plans[k] = {'f': f, 'df': df, 'd_s': ada_d_s_opt, 'd_sp': ada_d_sp_opt, 't_m': t_m_opt, 't_sp': t_sp_opt,
+            #             't_a': t_a_opt, 'type': 'adapted', 'leader': leaders[k]}
+            plan.type = 'adapted'
+            plan.leader = leaders[k]
+            plans[k] = plan
         else:
             plans[k] = default_plans[k]
 
@@ -328,7 +335,7 @@ def total_fuel_consumption(plans):
     # returns the total fuel consumption of the plans submitted
     f_total = 0.
     for k, plan in plans.iteritems():
-        f_total += plan['f']
+        f_total += plan.fuel
 
     return f_total
 
@@ -339,8 +346,8 @@ def total_fuel_consumption_spontaneous_platooning(path_data_sets, default_plans,
 
     def calc_platoon_f(size, w):
 
-        f = w * (constants.F0 + constants.F1 * v_nom)
-        f += (size - 1) * w * (constants.F0p + constants.F1p * v_nom)
+        f = w * (F0 + F1 * v_nom)
+        f += (size - 1) * w * (F0p + F1p * v_nom)
 
         return f
 
@@ -348,7 +355,7 @@ def total_fuel_consumption_spontaneous_platooning(path_data_sets, default_plans,
 
     # collect arrival time at every edge in the paths
     for k in default_plans:
-        v_nom = default_plans[k]['v_default']
+        v_nom = default_plans[k].speed
         path = path_data_sets[k]['path']
         path_weights = path_data_sets[k]['path_weights']
         t_s = path_data_sets[k]['t_s']
@@ -389,8 +396,8 @@ def total_fuel_consumption_no_time_constraints(path_data_sets, default_plans, ti
 
     def calc_platoon_f(size, w):
 
-        f = w * (constants.F0 + constants.F1 * v_nom)
-        f += (size - 1) * w * (constants.F0p + constants.F1p * v_nom)
+        f = w * (F0 + F1 * v_nom)
+        f += (size - 1) * w * (F0p + F1p * v_nom)
 
         return f
 
@@ -398,7 +405,7 @@ def total_fuel_consumption_no_time_constraints(path_data_sets, default_plans, ti
 
     # collect arrival time at every edge in the paths
     for k in default_plans:
-        v_nom = default_plans[k]['v_default']
+        v_nom = default_plans[k].speed
         path = path_data_sets[k]['path']
         path_weights = path_data_sets[k]['path_weights']
         for i in xrange(len(path)):

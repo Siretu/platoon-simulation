@@ -1,10 +1,8 @@
 import heapq
 import random
 
+from constants import NONE, LEADER
 from clusteralg import get_two_hop_neighbors, get_delta_u, build_inverted_graph, change_to_follower, change_to_leader
-
-total_miss = 0
-total_update = 0
 
 
 class PlatooningMethod:
@@ -34,10 +32,7 @@ class GreedyPlatooning(PlatooningMethod):
 
         return node
 
-    def update_u(self, n, leaders, gains, gain_heap, G, G_inv):
-        global total_miss
-        global total_update
-
+    def update_u(self, n, leaders, gains, gain_heap, G):
         # updates gains and gain_heap according to leader for all two-hop of
         # neighbors of n
 
@@ -45,41 +40,32 @@ class GreedyPlatooning(PlatooningMethod):
         # for improved performance
 
         # calculate and iterate of two hop neighbors
-        neighbors = get_two_hop_neighbors(n, G, G_inv)
+        neighbors = get_two_hop_neighbors(n, G)
         for nb in neighbors:
-            gain = get_delta_u(nb, leaders, G, G_inv)
+            gain = get_delta_u(nb, leaders, G)
 
             # update heap
             if gains[nb][0] != -gain:  # gain changed
-                total_update += 1
                 gains[nb][1] = -1  # old entry is invalid
                 gains[nb] = [-gain, nb]  # new entry
                 if gain > 0.:  # push on the heap if the gain is positive
                     heapq.heappush(gain_heap, gains[nb])
-            else:
-                total_miss += 1
 
     def clustering(self, G, verbose=False, max_iter=1000000):
         # init
 
-        LEADER = -1
-        NONE = -2
-
-        G_inv = build_inverted_graph(G)
-        nodes = list(G)
+        nodes = list(G.nodes)
         leaders = {node: NONE for node in nodes}
-        gains = {node: 0 for node in nodes}  # current gain from platooning
-        counter = 0
         # caution: the list use negative gains for since it is a min heap
         # and we want to change the node with biggest gain
-        gains = {n: [-get_delta_u(n, leaders, G, G_inv), n] for n in nodes}
+        gains = {n: [-get_delta_u(n, leaders, G), n] for n in nodes}
         gain_heap = []
         for key in gains:  # add all nodes with positive gain to the heap
             if gains[key][0] < 0.:
                 heapq.heappush(gain_heap, gains[key])
 
         # loop
-
+        counter = 0
         while counter < max_iter:
             counter += 1  # iteration count
 
@@ -90,19 +76,19 @@ class GreedyPlatooning(PlatooningMethod):
 
             # update the role of the node
             if leaders[node] == LEADER:  # become a follower
-                change_to_follower(node, leaders, G, G_inv, verbose)
+                change_to_follower(node, leaders, G, verbose)
             else:  # become a leader
-                change_to_leader(node, leaders, G, G_inv, verbose)
+                change_to_leader(node, leaders, G, verbose)
             # update the gains
-            self.update_u(node, leaders, gains, gain_heap, G, G_inv)
+            self.update_u(node, leaders, gains, gain_heap, G)
 
         # clean-up
 
         # check if all leaders have followers
-        for n in G:
+        for n in G.nodes:
             if leaders[n] == LEADER:
                 has_followers = False
-                for pot_follower in G_inv[n]:
+                for pot_follower in G.inverted_nodes[n]:
                     if leaders[pot_follower] == n:
                         has_followers = True
                         break
@@ -132,7 +118,7 @@ class RandomPlatooning(PlatooningMethod):
 
         return node
 
-    def update_u(self, n, leaders, gains, gain_heap, G, G_inv):
+    def update_u(self, n, leaders, gains, gain_heap, G):
         # updates gains according to leader for all two-hop of
         # neighbors of n
 
@@ -140,9 +126,9 @@ class RandomPlatooning(PlatooningMethod):
         # for improved performance
 
         # calculate and iterate of two hop neighbors
-        neighbors = get_two_hop_neighbors(n, G, G_inv)
+        neighbors = get_two_hop_neighbors(n, G)
         for nb in neighbors:
-            gain = get_delta_u(nb, leaders, G, G_inv)
+            gain = get_delta_u(nb, leaders, G)
             gains[nb] = [-gain, nb]  # new entry
 
     def clustering(self, G, verbose=False, max_iter=1000000):
@@ -150,17 +136,13 @@ class RandomPlatooning(PlatooningMethod):
 
         # init
 
-        LEADER = -1
-        NONE = -2
-
-        G_inv = build_inverted_graph(G)
-        nodes = list(G)
+        nodes = list(G.nodes)
         leaders = {node: NONE for node in nodes}
         gains = {node: 0 for node in nodes}  # current gain from platooning
         counter = 0
         # caution: the list use negative gains for since it is a min heap
         # and we want to change the node with biggest gain
-        gains = {n: [-get_delta_u(n, leaders, G, G_inv), n] for n in nodes}
+        gains = {n: [-get_delta_u(n, leaders, G), n] for n in nodes}
 
         # loop
 
@@ -174,19 +156,19 @@ class RandomPlatooning(PlatooningMethod):
 
             # update the role of the node
             if leaders[node] == LEADER:  # become a follower
-                change_to_follower(node, leaders, G, G_inv, verbose)
+                change_to_follower(node, leaders, G, verbose)
             else:  # become a leader
-                change_to_leader(node, leaders, G, G_inv, verbose)
+                change_to_leader(node, leaders, G, verbose)
             # update the gains
-            self.update_u(node, leaders, gains, None, G, G_inv)
+            self.update_u(node, leaders, gains, None, G)
 
         # clean-up
 
         # check if all leaders have followers
-        for n in G:
+        for n in G.nodes:
             if leaders[n] == LEADER:
                 has_followers = False
-                for pot_follower in G_inv[n]:
+                for pot_follower in G.inverted_nodes[n]:
                     if leaders[pot_follower] == n:
                         has_followers = True
                         break
@@ -208,7 +190,7 @@ class SubModularityPlatooning(PlatooningMethod):
 
     def clustering(self, G, verbose=False):
         X = [set()]
-        Y = [set(G.keys())]
+        Y = [set(G.nodes)]
 
         for i in range(len(Y[0])):
             Xp = X[i].union([i])
@@ -223,17 +205,16 @@ class SubModularityPlatooning(PlatooningMethod):
                 Y.append(Yp)
 
         leaders = X[-1]
-        followers = set(G.keys()).difference(leaders)
         nodes = {}
         real_leaders = set()
         real_followers = set()
-        for x in G:
+        for x in G.nodes:
             if x in leaders:
                 nodes[x] = -1
             else:
                 max_leader = -2
                 for neighbor in G[x]:
-                    if neighbor in leaders and (max_leader == -2 or G[x][neighbor] > G[x][max_leader]):
+                    if neighbor in leaders and (max_leader == -2 or G[x][neighbor].fuel_diff > G[x][max_leader].fuel_diff):
                         max_leader = neighbor
                 nodes[x] = max_leader
                 if max_leader != -2:
@@ -244,15 +225,13 @@ class SubModularityPlatooning(PlatooningMethod):
 
     @staticmethod
     def f(leaders, G):
-        G_inv = build_inverted_graph(G)
-
-        followers = set(G.keys()).difference(leaders)
+        followers = set(G.nodes).difference(leaders)
         total = 0
         for follower in followers:
             max_gain = -100000
-            for neighbor in G_inv[follower]:
-                if neighbor in leaders and G_inv[follower][neighbor] > max_gain:
-                    max_gain = G_inv[follower][neighbor]
+            for neighbor in G.inverted_nodes[follower]:
+                if neighbor in leaders and G.inverted_nodes[follower][neighbor].fuel_diff > max_gain:
+                    max_gain = G.inverted_nodes[follower][neighbor].fuel_diff
             if max_gain > -10000:
                 total += max_gain
         return total

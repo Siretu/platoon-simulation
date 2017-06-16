@@ -5,11 +5,24 @@ Created on Thu Jan 22 10:46:31 2015
 @author: sebastian
 """
 
-import heapq
-import random
+from constants import LEADER, NONE
 
-total_miss = 0
-total_update = 0
+
+class ClusterGraph:
+    def __init__(self, K_set):
+        self.nodes = {key: {} for key in K_set}
+        self.inverted_nodes = {key: {} for key in K_set}
+
+    def __getitem__(self, item):
+        return self.nodes[item]
+
+    def __setitem__(self, key, value):
+        self.nodes[key] = value
+
+    def add(self, leader, follower, plan):
+        self.nodes[leader][follower] = plan
+        self.inverted_nodes[follower][leader] = plan
+
 
 def build_inverted_graph(G):
     # calculates G with reversed edges
@@ -20,48 +33,41 @@ def build_inverted_graph(G):
     return G_inv
 
 
-def change_to_follower(node, leaders, G, G_inv, verbose):
+def change_to_follower(node, leaders, G, verbose):
     # updates leaders in place so that node becomes a follower and its previous
     # followers are updated accordingly
-
-    LEADER = -1
-    NONE = -2
 
     best_l = NONE
     gain_l = 0.
     for neighbor in G[node]:
-        if leaders[neighbor] == LEADER and G[node][neighbor] > gain_l:
+        if leaders[neighbor] == LEADER and G[node][neighbor].fuel_diff > gain_l:
             best_l = neighbor
-            gain_l = G[node][neighbor]
+            gain_l = G[node][neighbor].fuel_diff
     if verbose:
         print 'node ' + str(node) + ' becomes a follower of node ' + str(best_l)
     leaders[node] = best_l
-    for neighbor in G_inv[node]:
+    for neighbor in G.inverted_nodes[node]:
         if leaders[neighbor] == node:
             gain_ln = 0.
             best_l = NONE
             for nneighbor in G[neighbor]:
-                if leaders[nneighbor] == LEADER and G[neighbor][nneighbor] > gain_ln:
-                    gain_ln = G[neighbor][nneighbor]
+                if leaders[nneighbor] == LEADER and G[neighbor][nneighbor].fuel_diff > gain_ln:
+                    gain_ln = G[neighbor][nneighbor].fuel_diff
                     best_l = nneighbor
             leaders[neighbor] = best_l
 
     return
 
 
-def change_to_leader(node, leaders, G, G_inv, verbose):
+def change_to_leader(node, leaders, G, verbose):
     # updates leaders in place so that node becomes a leader and its neighbors
     # that become its followers are upadted accordingly
-
-    LEADER = -1
-    NONE = -2
-
     if verbose:
         print 'node ' + str(node) + ' becomes a leader'
     leaders[node] = LEADER
-    for neighbor in G_inv[node]:
+    for neighbor in G.inverted_nodes[node]:
         if leaders[neighbor] != LEADER and leaders[neighbor] != NONE:
-            if G[neighbor][node] > G[neighbor][leaders[neighbor]]:
+            if G[neighbor][node].fuel_diff > G[neighbor][leaders[neighbor]].fuel_diff:
                 leaders[neighbor] = node
         elif leaders[neighbor] == NONE:
             leaders[neighbor] = node
@@ -69,53 +75,50 @@ def change_to_leader(node, leaders, G, G_inv, verbose):
     return
 
 
-def get_delta_u(node, leaders, G, G_inv):
-    LEADER = -1
-    NONE = -2
-
+def get_delta_u(node, leaders, G):
     delta_u = 0.
     if leaders[node] != LEADER:  # a follower
         if leaders[node] != NONE:
-            delta_u -= G[node][leaders[node]]
-        for neighbor in G_inv[node]:
+            delta_u -= G[node][leaders[node]].fuel_diff
+        for neighbor in G.inverted_nodes[node]:
             if leaders[neighbor] != LEADER and leaders[neighbor] != NONE:
-                if G[neighbor][node] > G[neighbor][leaders[neighbor]]:
-                    delta_u += G[neighbor][node] - G[neighbor][leaders[neighbor]]
+                if G[neighbor][node].fuel_diff > G[neighbor][leaders[neighbor]].fuel_diff:
+                    delta_u += G[neighbor][node].fuel_diff - G[neighbor][leaders[neighbor]].fuel_diff
             elif leaders[neighbor] == NONE:
-                delta_u += G[neighbor][node]
+                delta_u += G[neighbor][node].fuel_diff
     else:  # a leader
         delta_u = 0.
         # find best leader for this node
         best_l = NONE
         gain_l = 0.
         for neighbor in G[node]:
-            if leaders[neighbor] == LEADER and G[node][neighbor] > gain_l:
+            if leaders[neighbor] == LEADER and G[node][neighbor].fuel_diff > gain_l:
                 best_l = neighbor
-                gain_l = G[node][neighbor]
+                gain_l = G[node][neighbor].fuel_diff
         if best_l != NONE:
             delta_u = gain_l
         # see what happens to the followers
-        for neighbor in G_inv[node]:
+        for neighbor in G.inverted_nodes[node]:
             if leaders[neighbor] == node:
                 gain_ln = 0.
                 for nneighbor in G[neighbor]:
-                    if nneighbor != node and leaders[nneighbor] == LEADER and G[neighbor][nneighbor] > gain_ln:
-                        gain_ln = G[neighbor][nneighbor]
-                delta_u += gain_ln - G[neighbor][node]
+                    if nneighbor != node and leaders[nneighbor] == LEADER and G[neighbor][nneighbor].fuel_diff > gain_ln:
+                        gain_ln = G[neighbor][nneighbor].fuel_diff
+                delta_u += gain_ln - G[neighbor][node].fuel_diff
 
     return delta_u
 
 
-def get_two_hop_neighbors(n, G, G_inv):
+def get_two_hop_neighbors(n, G):
     # return a set of the two hop neighbors of n
 
-    neighbors = set(G[n].keys() + G_inv[n].keys())
-    for nb in G[n].keys() + G_inv[n].keys():
-        neighbors.update(G[nb].keys() + G_inv[nb].keys())
+    neighbors = set(G[n].keys() + G.inverted_nodes[n].keys())
+    for nb in G[n].keys() + G.inverted_nodes[n].keys():
+        neighbors.update(G[nb].keys() + G.inverted_nodes[nb].keys())
     neighbors.add(n)
 
     return neighbors
 
 
 def get_upper_bound(G):
-    return sum([max(G[x].values()) for x in G if len(G[x])])
+    return sum([max([y.fuel_diff for y in G[x].values()]) for x in G.nodes if len(G[x])])

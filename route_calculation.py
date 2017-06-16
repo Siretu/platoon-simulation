@@ -5,7 +5,7 @@ import os
 import random
 import re
 
-import constants
+from constants import START_INTERVAL, V_NOM
 import sample_routes as sr
 
 
@@ -93,8 +93,8 @@ def save_path_data_sets(path_data_set, folder):
 def generate_routes(K, folder=""):
     route_links, route_weights, K_set, routes = get_routes_from_osrm(K, True)
 
-    start_times = {k: random.random() * constants.start_interval for k in K_set}
-    arrival_dlines = {k: start_times[k] + sum(route_weights[k]) / constants.v_nom for k in K_set}
+    start_times = {k: random.random() * START_INTERVAL for k in K_set}
+    arrival_dlines = {k: start_times[k] + sum(route_weights[k]) / V_NOM for k in K_set}
 
     # %%%%%% build coordination graph
     print 'building coordination graph'
