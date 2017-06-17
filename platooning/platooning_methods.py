@@ -2,7 +2,7 @@ import heapq
 import random
 
 from constants import NONE, LEADER
-from clusteralg import get_two_hop_neighbors, get_delta_u, build_inverted_graph, change_to_follower, change_to_leader
+from clusteralg import get_two_hop_neighbors, get_delta_u, change_to_follower, change_to_leader
 
 
 class PlatooningMethod:

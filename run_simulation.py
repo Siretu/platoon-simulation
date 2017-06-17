@@ -24,7 +24,7 @@ def simulation(folder, method):
 
     # Joint optimization for all clusters
     print "convex optimization"
-    plans = pp.retrieve_adapted_plans(path_data_sets, leaders, default_plans)
+    plans = pp.retrieve_adapted_plans(path_data_sets, leaders, default_plans, G_p)
     T_stars, f_opt_total, f_init_total = cv.optimize_all_clusters(leaders, N_l, plans, path_data_sets)
 
     # Calculate fuel consumption
@@ -35,7 +35,7 @@ def simulation(folder, method):
     f_relat_after_convex = (f_total_default - f_total_after_convex) / f_total_default
     f_total_spont_plat = pp.total_fuel_consumption_spontaneous_platooning(path_data_sets, default_plans, TIME_GAP)
     f_relat_spont_plat = (f_total_default - f_total_spont_plat) / f_total_default
-    f_total_no_time = pp.total_fuel_consumption_no_time_constraints(path_data_sets, default_plans, TIME_GAP)
+    f_total_no_time = pp.total_fuel_consumption_no_time_constraints(path_data_sets, default_plans)
     f_relat_no_time = (f_total_default - f_total_no_time) / f_total_default
 
     results['f_relat_spont_plat'] = f_relat_spont_plat

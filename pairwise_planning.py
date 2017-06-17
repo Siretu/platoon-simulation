@@ -48,16 +48,6 @@ def find_route_intersection(route1, route2):
     ind1_split = ind1_start + len(intersections)
     ind2_split = ind2_start + len(intersections)
 
-    # Don't think this is necessary anymore
-    # if ind1_split >= path1.shape[0]:
-    #     ind1_split -= 1
-    #     if ind1_split >= path1.shape[0]:
-    #         return False
-    # if ind2_split >= path2.shape[0]:
-    #     ind2_split -= 1
-    #     if ind2_split >= path2.shape[0]:
-    #         return False
-
     return (ind1_start, ind1_split), (ind2_start, ind2_split)
 
 
@@ -306,27 +296,19 @@ def get_default_plans(path_data_sets):
     return default_plans
 
 
-def retrieve_adapted_plans(path_data_sets, leaders, default_plans):
+def retrieve_adapted_plans(path_data_sets, leaders, default_plans, G):
     # calculates the selected adapted plans
     plans = {}
     for k in leaders:
-        if leaders[k] != LEADER and leaders[k] != NONE:
+        if leaders[k] == LEADER or leaders[k] == NONE:
+            plans[k] = default_plans[k]
+        else: # follower
             kf = k
             kl = leaders[k]
-            intersection = find_route_intersection(path_data_sets[kl], path_data_sets[kf])
-            #      if intersection != False:
-            plan = calculate_adaptation(path_data_sets[kl],
-                                                                                                path_data_sets[kf],
-                                                                                                intersection,
-                                                                                                default_plans[kl],
-                                                                                                default_plans[kf])
-            # plans[k] = {'f': f, 'df': df, 'd_s': ada_d_s_opt, 'd_sp': ada_d_sp_opt, 't_m': t_m_opt, 't_sp': t_sp_opt,
-            #             't_a': t_a_opt, 'type': 'adapted', 'leader': leaders[k]}
+            plan = G[kf][kl]
             plan.type = 'adapted'
             plan.leader = leaders[k]
             plans[k] = plan
-        else:
-            plans[k] = default_plans[k]
 
     return plans
 
@@ -390,7 +372,7 @@ def total_fuel_consumption_spontaneous_platooning(path_data_sets, default_plans,
     return total_f
 
 
-def total_fuel_consumption_no_time_constraints(path_data_sets, default_plans, time_gap):
+def total_fuel_consumption_no_time_constraints(path_data_sets, default_plans):
     # assumes for now that the trucks start at the beginning of the first link
     # calculates the fuel consumption if all trucks that share a link platoon
 

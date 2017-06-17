@@ -24,15 +24,6 @@ class ClusterGraph:
         self.inverted_nodes[follower][leader] = plan
 
 
-def build_inverted_graph(G):
-    # calculates G with reversed edges
-    G_inv = {node: {} for node in G}
-    for node1 in G:
-        for node2 in G[node1]:
-            G_inv[node2][node1] = G[node1][node2]
-    return G_inv
-
-
 def change_to_follower(node, leaders, G, verbose):
     # updates leaders in place so that node becomes a follower and its previous
     # followers are updated accordingly
@@ -77,16 +68,7 @@ def change_to_leader(node, leaders, G, verbose):
 
 def get_delta_u(node, leaders, G):
     delta_u = 0.
-    if leaders[node] != LEADER:  # a follower
-        if leaders[node] != NONE:
-            delta_u -= G[node][leaders[node]].fuel_diff
-        for neighbor in G.inverted_nodes[node]:
-            if leaders[neighbor] != LEADER and leaders[neighbor] != NONE:
-                if G[neighbor][node].fuel_diff > G[neighbor][leaders[neighbor]].fuel_diff:
-                    delta_u += G[neighbor][node].fuel_diff - G[neighbor][leaders[neighbor]].fuel_diff
-            elif leaders[neighbor] == NONE:
-                delta_u += G[neighbor][node].fuel_diff
-    else:  # a leader
+    if leaders[node] == LEADER:  # a leader
         delta_u = 0.
         # find best leader for this node
         best_l = NONE
@@ -105,6 +87,15 @@ def get_delta_u(node, leaders, G):
                     if nneighbor != node and leaders[nneighbor] == LEADER and G[neighbor][nneighbor].fuel_diff > gain_ln:
                         gain_ln = G[neighbor][nneighbor].fuel_diff
                 delta_u += gain_ln - G[neighbor][node].fuel_diff
+    else: # a follower
+        if leaders[node] != NONE:
+            delta_u -= G[node][leaders[node]].fuel_diff
+        for neighbor in G.inverted_nodes[node]:
+            if leaders[neighbor] != LEADER and leaders[neighbor] != NONE:
+                if G[neighbor][node].fuel_diff > G[neighbor][leaders[neighbor]].fuel_diff:
+                    delta_u += G[neighbor][node].fuel_diff - G[neighbor][leaders[neighbor]].fuel_diff
+            elif leaders[neighbor] == NONE:
+                delta_u += G[neighbor][node].fuel_diff
 
     return delta_u
 
