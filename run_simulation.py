@@ -3,9 +3,9 @@
 import sys
 
 import clusteralg as cl
-from constants import TIME_GAP
 import convex_optimization as cv
 import pairwise_planning as pp
+from platooning.assignments import Truck
 from platooning.platooning_methods import GreedyPlatooning
 from route_calculation import get_path_data_sets
 
@@ -15,8 +15,9 @@ def simulation(folder, method):
     print 'retrieving the routes'
     path_data_sets = get_path_data_sets(folder)
     default_plans = pp.get_default_plans(path_data_sets)
+    assignments = [Truck(i, path_data_sets[i]) for i in path_data_sets]
     print "computing the coordination graph"
-    G_p = pp.build_graph(path_data_sets, default_plans)
+    G_p = pp.build_graph(assignments)
 
     # Clustering
     print "clustering"
@@ -24,8 +25,8 @@ def simulation(folder, method):
 
     # Joint optimization for all clusters
     print "convex optimization"
-    plans = pp.retrieve_adapted_plans(path_data_sets, leaders, default_plans, G_p)
-    T_stars, f_opt_total, f_init_total = cv.optimize_all_clusters(leaders, N_l, plans, path_data_sets)
+    plans = pp.retrieve_adapted_plans(assignments, leaders, G_p)
+    T_stars, f_opt_total, f_init_total = cv.optimize_all_clusters(leaders, N_l, plans, assignments)
 
     # Calculate fuel consumption
     f_total_default = pp.total_fuel_consumption(default_plans)
@@ -33,9 +34,9 @@ def simulation(folder, method):
     f_relat_before_convex = (f_total_default - f_total_before_convex) / f_total_default
     f_total_after_convex = float(f_total_before_convex - (f_init_total - f_opt_total))
     f_relat_after_convex = (f_total_default - f_total_after_convex) / f_total_default
-    f_total_spont_plat = pp.total_fuel_consumption_spontaneous_platooning(path_data_sets, default_plans, TIME_GAP)
+    f_total_spont_plat = pp.total_fuel_consumption_spontaneous_platooning(assignments)
     f_relat_spont_plat = (f_total_default - f_total_spont_plat) / f_total_default
-    f_total_no_time = pp.total_fuel_consumption_no_time_constraints(path_data_sets, default_plans)
+    f_total_no_time = pp.total_fuel_consumption_no_time_constraints(assignments)
     f_relat_no_time = (f_total_default - f_total_no_time) / f_total_default
 
     results['f_relat_spont_plat'] = f_relat_spont_plat
@@ -45,7 +46,7 @@ def simulation(folder, method):
     results['f_total_after_convex'] = f_total_after_convex
     results['f_relat_before_convex'] = f_relat_before_convex
     results['f_relat_after_convex'] = f_relat_after_convex
-    results['size_stats'] = cv.get_platoon_size_stats(leaders, N_l, plans, path_data_sets)
+    results['size_stats'] = cv.get_platoon_size_stats(leaders, N_l, plans, assignments)
     results['upper_bound'] = cl.get_upper_bound(G_p)
     results['leaders'] = leaders
     return results

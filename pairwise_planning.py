@@ -1,6 +1,6 @@
 import math
 import numpy as np
-from constants import NONE, LEADER, V_MAX, V_MIN, V_NOM, F0, F0p, F1, F1p, EPS, MIN_INTERSECTION_LENGTH
+from constants import NONE, LEADER, V_MAX, V_MIN, V_NOM, F0, F0p, F1, F1p, EPS, MIN_INTERSECTION_LENGTH, TIME_GAP
 from clusteralg import ClusterGraph
 
 
@@ -21,9 +21,9 @@ class PlatoonPlan:
 
 def find_route_intersection(route1, route2):
     #  Gives first and last intersecting element on both routes
-    path1 = route1['path']
-    path2 = route2['path']
-    intersections = route1['path_set'] & route2['path_set']
+    path1 = route1.path
+    path2 = route2.path
+    intersections = route1.path_set & route2.path_set
 
     if not intersections:
         return False
@@ -78,29 +78,29 @@ def calculate_default(path_data):
     return t_a, v_default, f
 
 
-def calculate_adaptation(ref_path_data, ada_path_data, intersection, ref_default_plan, ada_default_plan, verbose=False):
+def calculate_adaptation(ref_path_data, ada_path_data, intersection, verbose=False):
     #  returns -1 if platooning is not feasible or beneficial, and the fuel saving (positive) if platooning is beneficial
 
-    ref_path = ref_path_data['path']
-    ref_path_weights = ref_path_data['path_weights']
-    ref_start_pos = ref_path_data['start_pos']  # index of the current link (!)
-    ref_t_s = ref_path_data['t_s']
-    ref_t_d = ref_path_data['arrival_dline']
+    ref_path = ref_path_data.path
+    ref_path_weights = ref_path_data.path_weights
+    ref_start_pos = ref_path_data.start_pos  # index of the current link (!)
+    ref_t_s = ref_path_data.start_time
+    ref_t_d = ref_path_data.deadline
     ref_merge_ind = intersection[0][0]
     ref_split_ind = intersection[0][1]
-    ref_v_def = ref_default_plan.speed
+    ref_v_def = ref_path_data.default_plan.speed
     #  ref_f_def = ref_default_plan['f']
     #  ref_t_a_def = ref_default_plan['t_a']
 
-    ada_path = ada_path_data['path']
-    ada_path_weights = ada_path_data['path_weights']
-    ada_start_pos = ada_path_data['start_pos']
-    ada_t_s = ada_path_data['t_s']
-    ada_t_d = ada_path_data['arrival_dline']
+    ada_path = ada_path_data.path
+    ada_path_weights = ada_path_data.path_weights
+    ada_start_pos = ada_path_data.start_pos
+    ada_t_s = ada_path_data.start_time
+    ada_t_d = ada_path_data.deadline
     ada_merge_ind = intersection[1][0]
     ada_split_ind = intersection[1][1]
     #  ada_v_def = ada_default_plan['v_default']
-    ada_f_def = ada_default_plan.fuel
+    ada_f_def = ada_path_data.default_plan.fuel
     #  ada_t_a_def = ada_default_plan['t_a']
 
     # check if times overlap at all
@@ -254,30 +254,28 @@ def get_distance(path_weights, start_pos, end_pos):
     return dist
 
 
-def build_graph(path_data_sets, default_plans):
-    K = len(path_data_sets)
-    K_set = list(path_data_sets)  # truck indices set
+def build_graph(assignments):
+    K = len(assignments)
+    K_set = [x.id for x in assignments]  # truck indices set
     graph = ClusterGraph(K_set)
 
     for i_f in xrange(K):
         for i_l in xrange(i_f + 1, K):
             kl = K_set[i_l]
             kf = K_set[i_f]
-            intersection = find_route_intersection(path_data_sets[kl], path_data_sets[kf])
+            intersection = find_route_intersection(assignments[kl], assignments[kf])
             #      old_intersection = find_route_intersection_old(path_data_sets[kl]['path'],path_data_sets[kf]['path'])
             if intersection:
                 intersection_length = np.sum(
-                    path_data_sets[kl]['path_weights'][intersection[0][0]:intersection[0][1] + 1])
+                    assignments[kl].path_weights[intersection[0][0]:intersection[0][1] + 1])
                 if intersection_length >= MIN_INTERSECTION_LENGTH:
-                    plan = calculate_adaptation(path_data_sets[kl], path_data_sets[kf], intersection, default_plans[kl],
-                                               default_plans[kf])
+                    plan = calculate_adaptation(assignments[kl], assignments[kf], intersection)
                     if plan:
                         if plan.fuel_diff > 0.:
                             graph.add(kf, kl, plan)
                     # swap role
                     intersection = (intersection[1], intersection[0])
-                    plan = calculate_adaptation(path_data_sets[kf], path_data_sets[kl], intersection, default_plans[kf],
-                                               default_plans[kl])
+                    plan = calculate_adaptation(assignments[kf], assignments[kl], intersection)
                     if plan:
                         if plan.fuel_diff > 0.:
                             graph.add(kl, kf, plan)
@@ -296,12 +294,12 @@ def get_default_plans(path_data_sets):
     return default_plans
 
 
-def retrieve_adapted_plans(path_data_sets, leaders, default_plans, G):
+def retrieve_adapted_plans(assignments, leaders, G):
     # calculates the selected adapted plans
     plans = {}
     for k in leaders:
         if leaders[k] == LEADER or leaders[k] == NONE:
-            plans[k] = default_plans[k]
+            plans[k] = assignments[k].default_plan
         else: # follower
             kf = k
             kl = leaders[k]
@@ -322,7 +320,7 @@ def total_fuel_consumption(plans):
     return f_total
 
 
-def total_fuel_consumption_spontaneous_platooning(path_data_sets, default_plans, time_gap):
+def total_fuel_consumption_spontaneous_platooning(assignments):
     # assumes for now that the trucks start at the beginning of the first link
     # TODO: There might be a problem with the nominal velocity.
 
@@ -336,11 +334,11 @@ def total_fuel_consumption_spontaneous_platooning(path_data_sets, default_plans,
     edge_arrival_times = {}
 
     # collect arrival time at every edge in the paths
-    for k in default_plans:
-        v_nom = default_plans[k].speed
-        path = path_data_sets[k]['path']
-        path_weights = path_data_sets[k]['path_weights']
-        t_s = path_data_sets[k]['t_s']
+    for assignment in assignments:
+        v_nom = assignment.default_plan.speed
+        path = assignment.path
+        path_weights = assignment.path_weights
+        t_s = assignment.start_time
         arrival_times = t_s + (np.cumsum(path_weights) - path_weights[0]) / v_nom
         for i in xrange(len(path)):
             edge = path[i]
@@ -358,7 +356,7 @@ def total_fuel_consumption_spontaneous_platooning(path_data_sets, default_plans,
 
         cur_platoon = [tt_link[0]]
         for traversal_time in tt_link[1:]:
-            if traversal_time - cur_platoon[0] < time_gap:
+            if traversal_time - cur_platoon[0] < TIME_GAP:
                 cur_platoon.append(traversal_time)
             else:
                 platoon_size = len(cur_platoon)
@@ -372,7 +370,7 @@ def total_fuel_consumption_spontaneous_platooning(path_data_sets, default_plans,
     return total_f
 
 
-def total_fuel_consumption_no_time_constraints(path_data_sets, default_plans):
+def total_fuel_consumption_no_time_constraints(assignments):
     # assumes for now that the trucks start at the beginning of the first link
     # calculates the fuel consumption if all trucks that share a link platoon
 
@@ -386,16 +384,14 @@ def total_fuel_consumption_no_time_constraints(path_data_sets, default_plans):
     edge_platoon_sizes = {}
 
     # collect arrival time at every edge in the paths
-    for k in default_plans:
-        v_nom = default_plans[k].speed
-        path = path_data_sets[k]['path']
-        path_weights = path_data_sets[k]['path_weights']
-        for i in xrange(len(path)):
-            edge = path[i]
+    for assignment in assignments:
+        v_nom = assignment.default_plan.speed
+        for i in xrange(len(assignment.path)):
+            edge = assignment.path[i]
             if edge in edge_platoon_sizes:
                 edge_platoon_sizes[edge]['tt_link'] += 1.
             else:
-                edge_platoon_sizes[edge] = {'weight': path_weights[i], 'tt_link': 1.}
+                edge_platoon_sizes[edge] = {'weight': assignment.path_weights[i], 'tt_link': 1.}
 
     total_f = 0.
     # go through G_e and calculate the fuel consumption per edge

@@ -182,8 +182,9 @@ class RandomPlatooning(PlatooningMethod):
 
 
 class SubModularityPlatooning(PlatooningMethod):
-    def __init__(self):
-        pass
+    def __init__(self, seed, deterministic=True, ):
+        self.deterministic = deterministic
+        self.seed = seed
 
     def __str__(self):
         return "sub modularity"
@@ -197,7 +198,15 @@ class SubModularityPlatooning(PlatooningMethod):
             Yp = Y[i].difference([i])
             a = self.f(Xp, G) - self.f(X[i], G)
             b = self.f(Yp, G) - self.f(Y[i], G)
-            if a >= b:
+            if self.deterministic:
+                keep_i = a >= b
+            else:
+                ap = max(a, 0.)
+                bp = max(b, 0.)
+                local_random = random.Random(self.seed)
+                keep_i = not ((ap == 0 and bp == 0) or ap/(ap+bp) < local_random.random())
+
+            if keep_i:
                 X.append(Xp)
                 Y.append(Y[i])
             else:
@@ -205,6 +214,10 @@ class SubModularityPlatooning(PlatooningMethod):
                 Y.append(Yp)
 
         leaders = X[-1]
+        return self.get_real_leaders(G, leaders)
+
+    @staticmethod
+    def get_real_leaders(G, leaders):
         nodes = {}
         real_leaders = set()
         real_followers = set()
@@ -220,7 +233,6 @@ class SubModularityPlatooning(PlatooningMethod):
                 if max_leader != -2:
                     real_leaders.add(max_leader)
                     real_followers.add(x)
-
         return real_followers, real_leaders, nodes, 1
 
     @staticmethod

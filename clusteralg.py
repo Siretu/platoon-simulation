@@ -69,7 +69,6 @@ def change_to_leader(node, leaders, G, verbose):
 def get_delta_u(node, leaders, G):
     delta_u = 0.
     if leaders[node] == LEADER:  # a leader
-        delta_u = 0.
         # find best leader for this node
         best_l = NONE
         gain_l = 0.
@@ -83,6 +82,7 @@ def get_delta_u(node, leaders, G):
         for neighbor in G.inverted_nodes[node]:
             if leaders[neighbor] == node:
                 gain_ln = 0.
+                # Check if there's a next_neighbor that neighbor can follow instead
                 for nneighbor in G[neighbor]:
                     if nneighbor != node and leaders[nneighbor] == LEADER and G[neighbor][nneighbor].fuel_diff > gain_ln:
                         gain_ln = G[neighbor][nneighbor].fuel_diff

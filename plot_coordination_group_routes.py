@@ -11,6 +11,7 @@ import numpy as np
 import convex_optimization as cv
 import pairwise_planning as pp
 import route_calculation as rc
+from platooning.assignments import Truck
 from platooning.platooning_methods import GreedyPlatooning
 
 
@@ -47,7 +48,8 @@ def one_simulation(K):
 
     # %%%%%% joint optimization for all clusters
     print 'starting convex optimization'
-    plans = pp.retrieve_adapted_plans(path_data_sets, leaders, default_plans, G_p)
+    assignments = [Truck(i, path_data_sets[i]) for i in path_data_sets]
+    plans = pp.retrieve_adapted_plans(assignments, leaders, G_p)
     followers_dict = cv.get_followers(N_l, leaders)
 
     def plot_one_group(n_l):
