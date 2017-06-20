@@ -182,7 +182,7 @@ class RandomPlatooning(PlatooningMethod):
 
 
 class SubModularityPlatooning(PlatooningMethod):
-    def __init__(self, seed, deterministic=True, ):
+    def __init__(self, deterministic=True, seed=0):
         self.deterministic = deterministic
         self.seed = seed
 
