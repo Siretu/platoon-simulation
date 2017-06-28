@@ -4,7 +4,7 @@ import unittest
 import time
 
 from platooning.platooning_methods import GreedyPlatooning, RandomPlatooning, SubModularityPlatooning
-from run_simulation import simulation
+from run_simulation import simulation, dynamic_simulation
 
 
 class TestSimulation(unittest.TestCase):
@@ -28,6 +28,21 @@ class TestSimulation(unittest.TestCase):
                          "{0: -2, 1: -2, 2: -2, 3: 12, 4: -1, 5: -2, 6: -2, 7: -2, 8: -2, 9: 88, 10: -2, 11: -1, 12: -1, 13: 92, 14: -2, 15: -2, 16: -2, 17: 88, 18: -2, 19: -2, 20: 88, 21: -2, 22: 76, 23: 43, 24: -2, 25: 33, 26: -2, 27: -1, 28: -2, 29: 79, 30: 64, 31: -1, 32: -2, 33: -1, 34: -2, 35: 68, 36: 4, 37: -2, 38: -2, 39: -2, 40: -2, 41: -1, 42: -2, 43: -1, 44: -1, 45: -2, 46: -2, 47: -2, 48: 31, 49: -2, 50: -2, 51: -1, 52: 63, 53: 27, 54: -2, 55: -2, 56: 51, 57: -2, 58: -2, 59: 75, 60: -2, 61: -1, 62: 68, 63: -1, 64: -1, 65: -2, 66: 44, 67: -2, 68: -1, 69: 76, 70: -2, 71: 74, 72: 68, 73: -2, 74: -1, 75: -1, 76: -1, 77: 51, 78: -2, 79: -1, 80: -2, 81: -2, 82: 61, 83: -2, 84: 68, 85: -2, 86: -2, 87: 11, 88: -1, 89: 41, 90: -2, 91: 74, 92: -1, 93: -2, 94: -2, 95: -2, 96: -2, 97: -2, 98: -2, 99: -2}")
         self.assertEqual(str(result["size_stats"]),
                          "{1: 25601725.859428469, 2: 6248163.8194618141, 3: 622693.01303148433, 4: 590861.73708113644, 5: 770780.33196208626}")
+        pass
+
+    def test_100_1_greedy_dynamic(self):
+        result = dynamic_simulation("./testroutes/test100-1/", GreedyPlatooning())
+        # self.assertAlmostEqual(result["f_relat_before_convex"], 0.0193179148343, delta=10 ** -10)
+        # self.assertAlmostEqual(result["f_relat_after_convex"], 0.0231643496297, delta=10 ** -10)
+        # self.assertAlmostEqual(result["f_relat_spont_plat"], 0.00415249686699, delta=10 ** -10)
+        #
+        # self.assertAlmostEqual(result["f_total_before_convex"], 7798.8310376, delta=10 ** -5)
+        # self.assertAlmostEqual(result["f_total_after_convex"], 7768.24243451, delta=10 ** -5)
+        # self.assertAlmostEqual(result["f_total_default"], 7952.45590347, delta=10 ** -5)
+        # self.assertEqual(str(result["leaders"]),
+        #                  "{0: -2, 1: -2, 2: -2, 3: 12, 4: -1, 5: -2, 6: -2, 7: -2, 8: -2, 9: 88, 10: -2, 11: -1, 12: -1, 13: 92, 14: -2, 15: -2, 16: -2, 17: 88, 18: -2, 19: -2, 20: 88, 21: -2, 22: 76, 23: 43, 24: -2, 25: 33, 26: -2, 27: -1, 28: -2, 29: 79, 30: 64, 31: -1, 32: -2, 33: -1, 34: -2, 35: 68, 36: 4, 37: -2, 38: -2, 39: -2, 40: -2, 41: -1, 42: -2, 43: -1, 44: -1, 45: -2, 46: -2, 47: -2, 48: 31, 49: -2, 50: -2, 51: -1, 52: 63, 53: 27, 54: -2, 55: -2, 56: 51, 57: -2, 58: -2, 59: 75, 60: -2, 61: -1, 62: 68, 63: -1, 64: -1, 65: -2, 66: 44, 67: -2, 68: -1, 69: 76, 70: -2, 71: 74, 72: 68, 73: -2, 74: -1, 75: -1, 76: -1, 77: 51, 78: -2, 79: -1, 80: -2, 81: -2, 82: 61, 83: -2, 84: 68, 85: -2, 86: -2, 87: 11, 88: -1, 89: 41, 90: -2, 91: 74, 92: -1, 93: -2, 94: -2, 95: -2, 96: -2, 97: -2, 98: -2, 99: -2}")
+        # self.assertEqual(str(result["size_stats"]),
+        #                  "{1: 25601725.859428469, 2: 6248163.8194618141, 3: 622693.01303148433, 4: 590861.73708113644, 5: 770780.33196208626}")
         pass
 
     def test_100_1_random(self):

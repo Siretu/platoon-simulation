@@ -4,9 +4,18 @@ from constants import NONE, LEADER, V_MAX, V_MIN, V_NOM, F0, F0p, F1, F1p, EPS, 
 from clusteralg import ClusterGraph
 
 
-class PlatoonPlan:
-    # Fuel consumption, fuel difference, distance to merge, distance to split, merge time, split time, arrival time
-    def __init__(self, fuel, fuel_difference, merge_distance, split_distance, merge_time, split_time, arrival_time):
+
+class PlatoonPlan(object):
+    def __init__(self, fuel):
+        self.fuel = fuel
+
+    def calculate_history(self, previous_t, current_t):
+        raise NotImplementedError("This method is not implemented")
+
+
+class AdaptedPlan(PlatoonPlan):
+    # Fuel consumption, fuel difference, distance to merge, distance to split, merge time, split time, arrival time, merge speed, platoon speed, split speed
+    def __init__(self, fuel, fuel_difference, merge_distance, split_distance, merge_time, split_time, arrival_time, merge_speed, platoon_speed, split_speed):
         self.fuel = fuel
         self.fuel_diff = fuel_difference
         self.merge_distance = merge_distance
@@ -14,10 +23,44 @@ class PlatoonPlan:
         self.merge_time = merge_time
         self.split_time = split_time
         self.arrival_time = arrival_time
+        self.merge_speed = merge_speed
+        self.platoon_speed = platoon_speed
+        self.split_speed = split_speed
         self.type = None
         self.leader = None
         self.speed = None
 
+    def calculate_history(self, previous_t, current_t):
+        from platooning.assignments import SpeedChange
+        result = []
+        if previous_t < self.merge_time:
+            result.append(SpeedChange(previous_t, self.merge_speed))
+            if current_t > self.merge_time:
+                result.append(SpeedChange(self.merge_time, self.platoon_speed, platooning=True))
+        elif previous_t < self.split_time:
+            result.append(SpeedChange(previous_t, self.platoon_speed, platooning=True))
+        else:
+            result.append(SpeedChange(previous_t, self.split_speed))
+
+        if previous_t < self.split_time < current_t:
+            result.append(SpeedChange(self.split_time, self.split_speed))
+
+        for i,change in enumerate(result[:-1]):
+            change.end_time = result[i+1].start_time
+        result[-1].end_time = current_t
+
+        return result
+
+
+class DefaultPlan(PlatoonPlan):
+    def __init__(self, arrival_time, fuel, speed):
+        super(self.__class__, self).__init__(fuel)
+        self.arrival_time = arrival_time
+        self.speed = speed
+
+    def calculate_history(self, previous_t, current_t):
+        from platooning.assignments import SpeedChange
+        return [SpeedChange(previous_t, self.speed, end_time=current_t)]
 
 def find_route_intersection(route1, route2):
     #  Gives first and last intersecting element on both routes
@@ -75,7 +118,7 @@ def calculate_default(path_data):
 
     f = (F0 + F1 * v_default) * path_L
 
-    return t_a, v_default, f
+    return DefaultPlan(t_a, f, v_default)
 
 
 def calculate_adaptation(ref_path_data, ada_path_data, intersection, verbose=False):
@@ -83,7 +126,7 @@ def calculate_adaptation(ref_path_data, ada_path_data, intersection, verbose=Fal
 
     ref_path = ref_path_data.path
     ref_path_weights = ref_path_data.path_weights
-    ref_start_pos = ref_path_data.start_pos  # index of the current link (!)
+    ref_start_pos = ref_path_data.current_pos  # index of the current link (!)
     ref_t_s = ref_path_data.start_time
     ref_t_d = ref_path_data.deadline
     ref_merge_ind = intersection[0][0]
@@ -94,7 +137,7 @@ def calculate_adaptation(ref_path_data, ada_path_data, intersection, verbose=Fal
 
     ada_path = ada_path_data.path
     ada_path_weights = ada_path_data.path_weights
-    ada_start_pos = ada_path_data.start_pos
+    ada_start_pos = ada_path_data.current_pos
     ada_t_s = ada_path_data.start_time
     ada_t_d = ada_path_data.deadline
     ada_merge_ind = intersection[1][0]
@@ -144,6 +187,8 @@ def calculate_adaptation(ref_path_data, ada_path_data, intersection, verbose=Fal
     # distance from the leaders start to the earliest merge point
     ref_d_s = get_distance(ref_path_weights, ref_start_pos, ref_first_merge_pos)
     ada_d_s = get_distance(ada_path_weights, ada_start_pos, ada_first_merge_pos)
+
+    # Distance from split to end
     ref_d_sp = ref_path_L - ref_d_s - d_p
     ada_d_sp = ada_path_L - ada_d_s - d_p
     if abs(ada_d_sp) < EPS:
@@ -175,6 +220,7 @@ def calculate_adaptation(ref_path_data, ada_path_data, intersection, verbose=Fal
             v_star_s = ada_d_s / (ref_t_m - ada_t_s)
             dx = 0.
 
+        # distance between start and optimal merge point
         ada_d_s_opt = ada_d_s + dx
         t_m_opt = ada_t_s + ada_d_s_opt / v_star_s  # merge time
 
@@ -216,20 +262,25 @@ def calculate_adaptation(ref_path_data, ada_path_data, intersection, verbose=Fal
         t_a_opt = ada_t_d
     t_sp_opt = t_a_opt - ada_d_sp_opt / v_star_sp  # optimal split time
 
+    # v_star_s = Speed while going to merge point
+    # v_star_sp = Speed after splitting
+    # ada_d_s_opt = Distance to optimal merge point
+    # ada_d_sp_opt = Distance left after splitting from platoon
+    # ada_d_p_opt = Optimal distance in platoon
     # calculate the fuel consumptions
     ada_d_p_opt = ada_path_L - ada_d_s_opt - ada_d_sp_opt
     f = (F0 + F1 * v_star_s) * ada_d_s_opt + (F0 + F1 * v_star_sp) * ada_d_sp_opt + (F0p + F1p * ref_v_def) * ada_d_p_opt
 
     if verbose:
         t_a_test = ada_t_s + ada_d_s_opt / v_star_s + ada_d_sp_opt / v_star_sp + (ada_path_L - ada_d_s_opt - ada_d_sp_opt) / ref_v_def
-        print 'differenece between computed arrival time and test arrival time: {}\n (Should be zero!)'.format(
+        print 'difference between computed arrival time and test arrival time: {}\n (Should be zero!)'.format(
             t_a_test - t_a_opt)
 
     if f < ada_f_def:
         if verbose:
             print 'platooning is better'
         # Fuel consumption, fuel difference, distance to merge, distance to split, merge time, split time, arrival time
-        return PlatoonPlan(f, ada_f_def - f, ada_d_s_opt, ada_d_sp_opt, t_m_opt, t_sp_opt, t_a_opt)
+        return AdaptedPlan(f, ada_f_def - f, ada_d_s_opt, ada_d_sp_opt, t_m_opt, t_sp_opt, t_a_opt, v_star_s, v_star_sp, ref_v_def)
     else:
         if verbose:
             print 'not platooning is better'
@@ -256,8 +307,10 @@ def get_distance(path_weights, start_pos, end_pos):
 
 def build_graph(assignments):
     K = len(assignments)
-    K_set = [x.id for x in assignments]  # truck indices set
+    K_set = [x for x in assignments]  # truck indices set
     graph = ClusterGraph(K_set)
+
+    if K < 2: return graph
 
     for i_f in xrange(K):
         for i_l in xrange(i_f + 1, K):
@@ -283,15 +336,7 @@ def build_graph(assignments):
 
 
 def get_default_plans(path_data_sets):
-    default_plans = {}
-    for k in path_data_sets:
-        t_a, v_default, f = calculate_default(path_data_sets[k])
-        # default_plans[k] = {'t_a': t_a, 'v_default': v_default, 'f': f, 'type': 'default'}
-        default_plans[k] = PlatoonPlan(f, None, None, None, None, None, t_a)
-        default_plans[k].type = 'default'
-        default_plans[k].speed = v_default
-
-    return default_plans
+    return {k: calculate_default(path_data_sets[k]) for k in path_data_sets}
 
 
 def retrieve_adapted_plans(assignments, leaders, G):
