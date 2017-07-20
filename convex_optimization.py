@@ -8,7 +8,6 @@ Convex optimization of the speed profiles given by the clustering algorithm
 """
 import cvxopt
 import cvxopt as co
-import matplotlib.pyplot as plt
 import numpy as np
 
 from constants import LEADER, NONE, V_MAX, V_MIN, V_NOM, F0, F0p, F1, F1p
@@ -311,28 +310,28 @@ def optimize_cluster(leader, followers, assignments, plans):
     return T_star, obj_opt, obj_init
 
 
-def plot_result(W_n, P_n, T_star, leader, followers, I_m, start_times):
-    # todos: pgf, remove default speed, show old grayed out
-
-    all_trucks = [leader] + followers
-    segment_nums = [len(W_n[n]) for n in all_trucks]
-    plt.figure()
-    #  T = array_to_dict(T_star,leader, followers, segment_nums)
-    T = T_star
-    space_offsets = {leader: 0}
-    for f in followers:
-        if P_n[f][0]:  # platoons from the start
-            space_offsets[f] = sum(W_n[leader][:I_m[f]])
-        else:
-            space_offsets[f] = sum(W_n[leader][:I_m[f]]) - W_n[f][0]
-    print space_offsets
-    for truck in all_trucks:
-        x = np.concatenate((np.array([0]), np.cumsum(W_n[truck]))) + space_offsets[truck]
-        t = np.concatenate((np.array([0]), np.cumsum(T[truck]))) + start_times[truck]
-        plt.plot(x, t, '--')
-    plt.show(block=False)
-
-    return
+# def plot_result(W_n, P_n, T_star, leader, followers, I_m, start_times):
+#     # todos: pgf, remove default speed, show old grayed out
+#
+#     all_trucks = [leader] + followers
+#     segment_nums = [len(W_n[n]) for n in all_trucks]
+#     plt.figure()
+#     #  T = array_to_dict(T_star,leader, followers, segment_nums)
+#     T = T_star
+#     space_offsets = {leader: 0}
+#     for f in followers:
+#         if P_n[f][0]:  # platoons from the start
+#             space_offsets[f] = sum(W_n[leader][:I_m[f]])
+#         else:
+#             space_offsets[f] = sum(W_n[leader][:I_m[f]]) - W_n[f][0]
+#     print space_offsets
+#     for truck in all_trucks:
+#         x = np.concatenate((np.array([0]), np.cumsum(W_n[truck]))) + space_offsets[truck]
+#         t = np.concatenate((np.array([0]), np.cumsum(T[truck]))) + start_times[truck]
+#         plt.plot(x, t, '--')
+#     plt.show(block=False)
+#
+#     return
 
 
 # there is something wrong with the calculation of t

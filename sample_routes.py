@@ -7,7 +7,6 @@ import os.path
 import random
 import time
 
-import matplotlib.pyplot as plt
 import numpy as np
 import scipy.ndimage
 import simplejson as json
@@ -249,22 +248,22 @@ def calc_route(start_loc, goal_loc, verbose=False):
     return processed_route
 
 
-def plot_routes_in_density_map(routes):
-    density_map_rgb = density_map.reshape(height, width, 1).repeat(3, 2)
-    for route in routes:
-        lat = route['node_coords_lat']
-        lon = route['node_coords_lon']
-        x, y = latlon_to_pixel(lat, lon, coordinate_precision)
-        for i in xrange(y.shape[0]):
-            if x[i] < width and y[i] < height:
-                density_map_rgb[y[i], x[i], :] = [255, 0, 0]
-        density_map_rgb[y[0], x[0], :] = [0, 255, 0]
-        density_map_rgb[y[-1], x[-1], :] = [0, 0, 255]
-
-    plt.figure()
-    plt.imshow(density_map_rgb, interpolation="nearest")
-    plt.show(block=False)
-    return
+# def plot_routes_in_density_map(routes):
+#     density_map_rgb = density_map.reshape(height, width, 1).repeat(3, 2)
+#     for route in routes:
+#         lat = route['node_coords_lat']
+#         lon = route['node_coords_lon']
+#         x, y = latlon_to_pixel(lat, lon, coordinate_precision)
+#         for i in xrange(y.shape[0]):
+#             if x[i] < width and y[i] < height:
+#                 density_map_rgb[y[i], x[i], :] = [255, 0, 0]
+#         density_map_rgb[y[0], x[0], :] = [0, 255, 0]
+#         density_map_rgb[y[-1], x[-1], :] = [0, 0, 255]
+#
+#     plt.figure()
+#     plt.imshow(density_map_rgb, interpolation="nearest")
+#     plt.show(block=False)
+#     return
 
 
 def routes_to_pkl():

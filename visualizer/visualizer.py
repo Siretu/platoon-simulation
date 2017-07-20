@@ -9,7 +9,7 @@ from main import VisualizerMain
 from platooning.platooning_methods import GreedyPlatooning
 from route import FRAMERATE
 from route_calculation import generate_routes, get_routes, get_path_data_sets
-from run_simulation import dynamic_simulation
+from run_simulation import dynamic_simulation, simulation
 
 TEST_FOLDER = '../testing/testroutes/test100-5/'
 
@@ -56,6 +56,7 @@ if __name__ == "__main__":
     # route_info = get_route_info(TEST_FOLDER)
 
     result = dynamic_simulation(GreedyPlatooning(), path_data_sets=path_data, folder=TEST_FOLDER)
+    # result = simulation(TEST_FOLDER, GreedyPlatooning())
     # routes = {
     #     1: {"lat": 0, "lon": 500},
     #     2: {"lat": 0, "lon": 0},

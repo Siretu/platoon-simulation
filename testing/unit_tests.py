@@ -3,7 +3,8 @@ from __future__ import absolute_import
 import unittest
 import time
 
-from pairwise_planning import DefaultPlan, AdaptedPlan
+from pairwise_planning import DefaultPlan, AdaptedPlan, convert_edge_intersection
+from platooning.assignments import Truck
 from platooning.platooning_methods import GreedyPlatooning, RandomPlatooning, SubModularityPlatooning
 from run_simulation import simulation, dynamic_simulation
 
@@ -82,3 +83,23 @@ class UnitTests(unittest.TestCase):
         self.assertEquals(35, new_history[0].speed)
         self.assertEquals(25, new_history[0].start_time)
         self.assertFalse(new_history[0].platooning)
+
+    def test_convert_edge_intersection_1(self):
+        a = Truck(0, {'edge_offsets': [0, 15, 42, 100], 'path': [0]*155, 'edge_ids': [], 'path_set': None, 'path_weights': [0], 't_s': 0, 'arrival_dline': 10, 'start_pos': {'i':0,'x':0}, })
+        b = Truck(1, {'edge_offsets': [0, 12, 88, 123], 'path': [0]*189, 'edge_ids': [], 'path_set': None, 'path_weights': [0], 't_s': 0, 'arrival_dline': 10, 'start_pos': {'i':0,'x':0}, })
+        result = convert_edge_intersection(1, 0, 1, 0, a, b)
+        self.assertEqual((42, 88, 0, 0), result)
+
+    def test_convert_edge_intersection_2(self):
+        a = Truck(0, {'edge_offsets': [0, 15, 42, 100], 'path': [0]*155, 'edge_ids': [], 'path_set': None, 'path_weights': [0], 't_s': 0, 'arrival_dline': 10, 'start_pos': {'i':0,'x':0}, })
+        b = Truck(1, {'edge_offsets': [0, 12, 88, 123], 'path': [0]*189, 'edge_ids': [], 'path_set': None, 'path_weights': [0], 't_s': 0, 'arrival_dline': 10, 'start_pos': {'i':0,'x':0}, })
+        result = convert_edge_intersection(3, 0, 3, 0, a, b)
+        self.assertEqual((155, 189, 0, 0), result)
+
+    def test_convert_edge_intersection_3(self):
+        a = Truck(0, {'edge_offsets': [0, 15, 42, 100], 'path': [0] * 155, 'edge_ids': [], 'path_set': None,
+                      'path_weights': [0], 't_s': 0, 'arrival_dline': 10, 'start_pos': {'i': 0, 'x': 0}, })
+        b = Truck(1, {'edge_offsets': [0, 12, 88, 123], 'path': [0] * 189, 'edge_ids': [], 'path_set': None,
+                      'path_weights': [0], 't_s': 0, 'arrival_dline': 10, 'start_pos': {'i': 0, 'x': 0}, })
+        result = convert_edge_intersection(3, 2, 2, 1, a, b)
+        self.assertEqual((155, 123, 42, 12), result)
