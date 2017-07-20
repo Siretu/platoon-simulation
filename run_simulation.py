@@ -12,6 +12,8 @@ import numpy as np
 import constants
 from constants import NONE
 
+HORIZON = 0
+
 
 def dynamic_simulation(method, path_data_sets=None, folder=None):
     results = {}
@@ -28,13 +30,14 @@ def dynamic_simulation(method, path_data_sets=None, folder=None):
     previous = 0
     print "computing the coordination graph"
     for i,truck in enumerate(assignments):
-        map(lambda x: x.update(previous, truck.start_time), current_trucks.values())
-        current_trucks = {i : current_trucks[i] for i in current_trucks if not current_trucks[i].done}
-        current_trucks[truck.id] = truck
+        map(lambda x: x.update(truck.start_time), current_trucks.values())
+        # current_trucks = {i: current_trucks[i] for i in current_trucks if not current_trucks[i].done}
+        # current_trucks[truck.id] = truck
+        current_trucks = {x.id: x for x in assignments if not x.done and x.start_time <= truck.start_time + HORIZON}
         G_p = pp.build_graph(current_trucks)
 
         # Clustering
-        print "clustering: %d: %d" % (i,len(current_trucks))
+        print "clustering: %d: %d" % (i, len(current_trucks))
         N_f, N_l, leaders, counter = method.clustering(G_p)
         for follower in N_f:
             if leaders[follower] != NONE:
@@ -51,7 +54,7 @@ def dynamic_simulation(method, path_data_sets=None, folder=None):
     return assignments
 
 
-def simulation(folder, method):
+def simulation(folder, method, optimize=True):
     results = {}
     print 'retrieving the routes'
     path_data_sets = get_path_data_sets(folder)
@@ -66,14 +69,21 @@ def simulation(folder, method):
     # Joint optimization for all clusters
     print "convex optimization"
     plans = pp.retrieve_adapted_plans(assignments, leaders, G_p)
-    T_stars, f_opt_total, f_init_total = cv.optimize_all_clusters(leaders, N_l, plans, assignments)
 
     # Calculate fuel consumption
     f_total_default = pp.total_fuel_consumption({i: x.default_plan for i,x in enumerate(assignments)})
     f_total_before_convex = pp.total_fuel_consumption(plans)
     f_relat_before_convex = (f_total_default - f_total_before_convex) / f_total_default
-    f_total_after_convex = float(f_total_before_convex - (f_init_total - f_opt_total))
-    f_relat_after_convex = (f_total_default - f_total_after_convex) / f_total_default
+
+    if optimize:
+        # Joint optimization for all clusters
+        print "convex optimization"
+        T_stars, f_opt_total, f_init_total = cv.optimize_all_clusters(leaders, N_l, plans, assignments)
+        f_total_after_convex = float(f_total_before_convex - (f_init_total - f_opt_total))
+        f_relat_after_convex = (f_total_default - f_total_after_convex) / f_total_default
+        results['f_total_after_convex'] = f_total_after_convex
+        results['f_relat_after_convex'] = f_relat_after_convex
+
     f_total_spont_plat = pp.total_fuel_consumption_spontaneous_platooning(assignments)
     f_relat_spont_plat = (f_total_default - f_total_spont_plat) / f_total_default
     f_total_no_time = pp.total_fuel_consumption_no_time_constraints(assignments)
@@ -83,9 +93,7 @@ def simulation(folder, method):
     results['f_relat_no_time'] = f_relat_no_time
     results['f_total_default'] = f_total_default
     results['f_total_before_convex'] = f_total_before_convex
-    results['f_total_after_convex'] = f_total_after_convex
     results['f_relat_before_convex'] = f_relat_before_convex
-    results['f_relat_after_convex'] = f_relat_after_convex
     results['size_stats'] = cv.get_platoon_size_stats(leaders, N_l, plans, assignments)
     results['upper_bound'] = cl.get_upper_bound(G_p)
     results['leaders'] = leaders

@@ -24,9 +24,10 @@ class Truck:
         self.current_time = self.start_time
         self.plan_history = [self.plan]
 
-    def update(self, previous_t, current_t):
-        if previous_t < self.start_time:
-            previous_t = self.start_time
+    def update(self, current_t):
+        # Haven't started yet
+        if current_t < self.start_time:
+            return
         self.current_time = current_t
         self.current_pos = self.pos_from_total()
 
@@ -41,7 +42,7 @@ class Truck:
         self.done = True
 
     def change_plan(self, new_plan, current_time):
-        if len(self.speed_history) > 0:
+        if len(self.speed_history) > 0 and current_time >= self.start_time:
             self.speed_history = [x for x in self.speed_history if x.start_time <= current_time]
             self.speed_history[-1].end_time = current_time
 
