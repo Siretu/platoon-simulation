@@ -100,13 +100,19 @@ def convert_edge_intersection(ind1_split, ind1_start, ind2_split, ind2_start, ro
     start1 = route1.edge_offsets[ind1_start]
     start2 = route2.edge_offsets[ind2_start]
     if ind1_split + 1 >= len(route1.edge_offsets):
-        split1 = len(route1.path)
+        split1 = len(route1.path) - 1
     else:
         split1 = route1.edge_offsets[ind1_split + 1]
     if ind2_split + 1 >= len(route2.edge_offsets):
-        split2 = len(route2.path)
+        split2 = len(route2.path) - 1
     else:
         split2 = route2.edge_offsets[ind2_split + 1]
+
+    # In case one ends on an edge, adjust so other intersection does not continue for entire edge
+    if split1 - start1 != split2 - start2:
+        diff = min(split1 - start1, split2 - start2)
+        split1 = start1 + diff
+        split2 = start2 + diff
     return split1, split2, start1, start2
 
 
