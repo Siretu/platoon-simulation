@@ -13,10 +13,13 @@ import constants
 from constants import NONE
 
 
-def dynamic_simulation(folder, method):
+def dynamic_simulation(method, path_data_sets=None, folder=None):
     results = {}
     print 'retrieving the routes'
-    path_data_sets = get_path_data_sets(folder)
+
+    if not path_data_sets:
+        path_data_sets = get_path_data_sets(folder)
+
     default_plans = pp.get_default_plans(path_data_sets)
     assignments = [Truck(i, path_data_sets[i]) for i in path_data_sets]
     assignments.sort(key=lambda x: x.start_time)
@@ -24,14 +27,14 @@ def dynamic_simulation(folder, method):
     current_trucks = {}
     previous = 0
     print "computing the coordination graph"
-    for truck in assignments:
+    for i,truck in enumerate(assignments):
         map(lambda x: x.update(previous, truck.start_time), current_trucks.values())
         current_trucks = {i : current_trucks[i] for i in current_trucks if not current_trucks[i].done}
         current_trucks[truck.id] = truck
         G_p = pp.build_graph(current_trucks)
 
         # Clustering
-        print "clustering: %d" % len(current_trucks)
+        print "clustering: %d: %d" % (i,len(current_trucks))
         N_f, N_l, leaders, counter = method.clustering(G_p)
         for follower in N_f:
             if leaders[follower] != NONE:
@@ -45,7 +48,7 @@ def dynamic_simulation(folder, method):
         # T_stars, f_opt_total, f_init_total = cv.optimize_all_clusters(leaders, N_l, plans, current_trucks)
         # previous = truck.start_time
 
-    return results
+    return assignments
 
 
 def simulation(folder, method):

@@ -4,6 +4,7 @@ import unittest
 import time
 
 from platooning.platooning_methods import GreedyPlatooning, RandomPlatooning, SubModularityPlatooning
+from route_calculation import generate_routes
 from run_simulation import simulation, dynamic_simulation
 
 
@@ -31,7 +32,8 @@ class TestSimulation(unittest.TestCase):
         pass
 
     def test_100_1_greedy_dynamic(self):
-        result = dynamic_simulation("./testroutes/test100-1/", GreedyPlatooning())
+        generate_routes(100, './testroutes/test100-5/')
+        # result = dynamic_simulation("./testroutes/test100-5/", GreedyPlatooning())
         # self.assertAlmostEqual(result["f_relat_before_convex"], 0.0193179148343, delta=10 ** -10)
         # self.assertAlmostEqual(result["f_relat_after_convex"], 0.0231643496297, delta=10 ** -10)
         # self.assertAlmostEqual(result["f_relat_spont_plat"], 0.00415249686699, delta=10 ** -10)

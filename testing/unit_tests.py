@@ -8,7 +8,7 @@ from platooning.platooning_methods import GreedyPlatooning, RandomPlatooning, Su
 from run_simulation import simulation, dynamic_simulation
 
 
-class TestSimulation(unittest.TestCase):
+class UnitTests(unittest.TestCase):
     def setUp(self):
         self.start = time.time()
 

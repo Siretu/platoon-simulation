@@ -1,34 +1,37 @@
 from constants import F0p, F1p, F0, F1
 from pairwise_planning import calculate_default, DefaultPlan
+import numpy as np
 
 
 class Truck:
     def __init__(self, i, path_data_set):
         self.id = i
         self.path = path_data_set['path']
+        self.edge_path = np.array([x for x in path_data_set['edge_ids'] if x != 4294967295])
+        self.edge_set = set(self.edge_path)
+        self.edge_offsets = path_data_set['edge_offsets']
         self.path_set = path_data_set['path_set']
         self.path_weights = path_data_set['path_weights']
         self.start_time = path_data_set['t_s']
         self.deadline = path_data_set['arrival_dline']
         self.current_pos = path_data_set['start_pos']
-        self.total_pos = 0
 
         self.default_plan = calculate_default(path_data_set)
         self.plan = self.default_plan
         self.speed_history = []
         self.speed_history += self.plan.calculate_history(self.start_time, self.deadline)
         self.done = False
-        self.current_time = -1
+        self.current_time = self.start_time
         self.plan_history = [self.plan]
 
     def update(self, previous_t, current_t):
+        if previous_t < self.start_time:
+            previous_t = self.start_time
         self.current_time = current_t
-        self.total_pos += current_t - previous_t
         self.current_pos = self.pos_from_total()
 
-    # This is incorrect. It calculates position based on time instead of based on distance
     def pos_from_total(self):
-        remaining = self.current_distance(self.total_pos)
+        remaining = self.current_distance()
         for i, x in enumerate(self.path_weights):
             if remaining >= x:
                 remaining -= x
@@ -55,18 +58,22 @@ class Truck:
             else:
                 end_t = self.speed_history[i+1].start_time
             d = speed_change.speed * (end_t - speed_change.start_time)
-            if speed_change.platooning:
+            if speed_change.platooning and False:
                 fV = F0p + F1p * speed_change.speed
             else:
                 fV = F0 + F1 * speed_change.speed
             total += fV * d
         return total
 
-    def current_distance(self, final_time):
+    def current_distance(self, time=None):
+        if not time:
+            time = self.current_time
         total = 0
         for i, speed_change in enumerate(self.speed_history):
-            if i == len(self.speed_history) - 1:
-                end_t = final_time
+            if speed_change.start_time > time:
+                break
+            if i == len(self.speed_history) - 1 or time < self.speed_history[i+1].start_time:
+                end_t = time
             else:
                 end_t = self.speed_history[i+1].start_time
             d = speed_change.speed * (end_t - speed_change.start_time)

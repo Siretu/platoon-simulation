@@ -15,7 +15,7 @@ import simplejson as json
 num_routes = 1000
 min_route_length = 100 * 1000
 max_route_length = 400 * 1000  # in meters
-osrm_url = 'simserver.now.im:5000'
+osrm_url = 'simserver.now.im:5001'
 
 density_map = scipy.ndimage.imread(os.path.join(os.path.dirname(__file__), 'sedac_sweden_only.png'), mode='L')
 resolution = 0.1  # .1 deg/pixel
@@ -77,7 +77,7 @@ def calc_route_retry(seed, verbose=False):
             print "start and goal are the same, abort"
         return False
 
-    route = calc_route(start_loc, goal_loc, verbose)
+    route = calc_route2(start_loc, goal_loc, verbose)
 
     rt = 1.
     rts = 1.
@@ -86,7 +86,7 @@ def calc_route_retry(seed, verbose=False):
         # try again with slightly different coordinates
         start_loc = (start_loc[0] + .01 * rt * rts, start_loc[1] + .01 * rt * rts)
         goal_loc = (goal_loc[0] + .01 * rt * rts, goal_loc[1] + .01 * rt * rts)
-        route = calc_route(start_loc, goal_loc, verbose)
+        route = calc_route2(start_loc, goal_loc, verbose)
         rt += 1.
         rts *= -1
         if rt == 100:
@@ -96,6 +96,39 @@ def calc_route_retry(seed, verbose=False):
     else:
         print 'could not find a route even for the altered coordinates between {} and {}'.format(start_loc, goal_loc)
         return False
+
+
+def calc_route2(start, goal, verbose=False):
+    # start = [64.896553, 20.373343]
+    # goal = [57.637585, 13.076223]
+    request_template = '/route/v1/driving/{},{};{},{}?overview=false&generate_hints=false'
+    request = request_template.format(start[1], start[0], goal[1], goal[0])
+    conn = httplib.HTTPConnection(osrm_url)
+    conn.request("GET", request)
+    r1 = conn.getresponse()
+    result = json.loads(r1.read())
+    conn.close()
+    result = result['routes'][0]
+    result['link_lengths'] = np.array(result['distances'])
+    result['node_coords_lat'] = np.array(result['lats'])
+    result['node_coords_lon'] = np.array(result['lons'])
+    result['node_ids'] = np.array(result['node_ids'])
+
+    return result
+
+    # start = {'lat': 60.457217797743944, 'lon': 17.3968505859375}
+    # goal = {'lat': 59.62888035850546, 'lon': 17.9022216796875}
+    # request_template = '/route/v1/driving/{},{};{},{}?overview=false&generate_hints=false'
+    # request = request_template.format(start['lon'], start['lat'], goal['lon'], goal['lat'])
+    # conn = httplib.HTTPConnection(osrm_url)
+    # conn.request("GET", request)
+    # r1 = conn.getresponse()
+    # result = json.loads(r1.read())
+    # conn.close()
+    #
+    # return result
+
+
 
 
 def calc_route(start_loc, goal_loc, verbose=False):

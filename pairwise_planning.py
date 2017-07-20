@@ -62,11 +62,12 @@ class DefaultPlan(PlatoonPlan):
         from platooning.assignments import SpeedChange
         return [SpeedChange(previous_t, self.speed, end_time=current_t)]
 
+
 def find_route_intersection(route1, route2):
     #  Gives first and last intersecting element on both routes
-    path1 = route1.path
-    path2 = route2.path
-    intersections = route1.path_set & route2.path_set
+    path1 = route1.edge_path
+    path2 = route2.edge_path
+    intersections = route1.edge_set & route2.edge_set
 
     if not intersections:
         return False
@@ -91,7 +92,22 @@ def find_route_intersection(route1, route2):
     ind1_split = ind1_start + len(intersections)
     ind2_split = ind2_start + len(intersections)
 
-    return (ind1_start, ind1_split), (ind2_start, ind2_split)
+    split1, split2, start1, start2 = convert_edge_intersection(ind1_split, ind1_start, ind2_split, ind2_start, route1, route2)
+    return (start1, split1), (start2, split2)
+
+
+def convert_edge_intersection(ind1_split, ind1_start, ind2_split, ind2_start, route1, route2):
+    start1 = route1.edge_offsets[ind1_start]
+    start2 = route2.edge_offsets[ind2_start]
+    if ind1_split + 1 >= len(route1.edge_offsets):
+        split1 = len(route1.path)
+    else:
+        split1 = route1.edge_offsets[ind1_split + 1]
+    if ind2_split + 1 >= len(route2.edge_offsets):
+        split2 = len(route2.path)
+    else:
+        split2 = route2.edge_offsets[ind2_split + 1]
+    return split1, split2, start1, start2
 
 
 def calculate_default(path_data):
@@ -319,6 +335,7 @@ def build_graph(assignments):
             intersection = find_route_intersection(assignments[kl], assignments[kf])
             #      old_intersection = find_route_intersection_old(path_data_sets[kl]['path'],path_data_sets[kf]['path'])
             if intersection:
+
                 intersection_length = np.sum(
                     assignments[kl].path_weights[intersection[0][0]:intersection[0][1] + 1])
                 if intersection_length >= MIN_INTERSECTION_LENGTH:
