@@ -4,7 +4,6 @@ from constants import NONE, LEADER, V_MAX, V_MIN, V_NOM, F0, F0p, F1, F1p, EPS, 
 from clusteralg import ClusterGraph
 
 
-
 class PlatoonPlan(object):
     def __init__(self, fuel):
         self.fuel = fuel
@@ -63,7 +62,12 @@ class DefaultPlan(PlatoonPlan):
         return [SpeedChange(previous_t, self.speed, end_time=current_t)]
 
 
+INTERSECTION_CACHE = {}
+
+
 def find_route_intersection(route1, route2):
+    if (route1.id, route2.id) in INTERSECTION_CACHE:
+        return INTERSECTION_CACHE[(route1.id, route2.id)]
     #  Gives first and last intersecting element on both routes
     path1 = route1.edge_path
     path2 = route2.edge_path
@@ -93,7 +97,9 @@ def find_route_intersection(route1, route2):
     ind2_split = ind2_start + len(intersections)
 
     split1, split2, start1, start2 = convert_edge_intersection(ind1_split, ind1_start, ind2_split, ind2_start, route1, route2)
-    return (start1, split1), (start2, split2)
+    intersection = (start1, split1), (start2, split2)
+    INTERSECTION_CACHE[(route1.id, route2.id)] = intersection
+    return intersection
 
 
 def convert_edge_intersection(ind1_split, ind1_start, ind2_split, ind2_start, route1, route2):
@@ -191,24 +197,24 @@ def calculate_adaptation(ref_path_data, ada_path_data, intersection, verbose=Fal
     #  except:
     #    print 'fail'
 
-    if get_distance(ref_path_weights, ref_start_pos, ref_last_split_pos) == 0.:  # we have passed the common part
+    if get_distance2(ref_path_data.path_weights_cum, ref_start_pos, ref_last_split_pos) == 0.:  # we have passed the common part
         if verbose:
             print 'Cannot platoon since the leader has passed the common part!'
         return
-    if get_distance(ada_path_weights, ada_start_pos, ada_last_split_pos) == 0.:
+    if get_distance2(ada_path_data.path_weights_cum, ada_start_pos, ada_last_split_pos) == 0.:
         if verbose:
             print 'Cannot platoon since the follower has passed the common part!'
         return
 
-    ref_path_L = get_distance(ref_path_weights, ref_start_pos, ref_end_pos)
-    ada_path_L = get_distance(ada_path_weights, ada_start_pos, ada_end_pos)
+    ref_path_L = get_distance2(ref_path_data.path_weights_cum, ref_start_pos, ref_end_pos)
+    ada_path_L = get_distance2(ada_path_data.path_weights_cum, ada_start_pos, ada_end_pos)
 
     # length of the common segment
-    d_p = get_distance(ref_path_weights, ref_first_merge_pos, ref_last_split_pos)
+    d_p = get_distance2(ref_path_data.path_weights_cum, ref_first_merge_pos, ref_last_split_pos)
 
     # distance from the leaders start to the earliest merge point
-    ref_d_s = get_distance(ref_path_weights, ref_start_pos, ref_first_merge_pos)
-    ada_d_s = get_distance(ada_path_weights, ada_start_pos, ada_first_merge_pos)
+    ref_d_s = get_distance2(ref_path_data.path_weights_cum, ref_start_pos, ref_first_merge_pos)
+    ada_d_s = get_distance2(ada_path_data.path_weights_cum, ada_start_pos, ada_first_merge_pos)
 
     # Distance from split to end
     ref_d_sp = ref_path_L - ref_d_s - d_p
@@ -321,6 +327,24 @@ def get_distance(path_weights, start_pos, end_pos):
 
     if ei >= si:
         dist = np.sum(path_weights[si:ei]) - sx + ex
+    elif ei < si:
+        dist = 0.
+
+    return dist
+
+
+def get_distance2(path_weights_cum, start_pos, end_pos):
+    #  assumes a list with path weights, start_pos, end_pos as dict of link 'i' index
+    #  and position on the link 'x'
+    # returns zero the end lies before the start
+
+    si = start_pos['i']
+    sx = start_pos['x']
+    ei = end_pos['i']
+    ex = end_pos['x']
+
+    if ei >= si:
+        dist = path_weights_cum[ei] - path_weights_cum[si] - sx + ex
     elif ei < si:
         dist = 0.
 

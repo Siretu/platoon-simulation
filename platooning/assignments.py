@@ -12,6 +12,7 @@ class Truck:
         self.edge_offsets = path_data_set['edge_offsets']
         self.path_set = path_data_set['path_set']
         self.path_weights = path_data_set['path_weights']
+        self.path_weights_cum = np.concatenate((np.zeros(1), np.cumsum(path_data_set['path_weights'])))
         self.start_time = path_data_set['t_s']
         self.deadline = path_data_set['arrival_dline']
         self.current_pos = path_data_set['start_pos']

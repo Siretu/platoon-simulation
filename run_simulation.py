@@ -16,13 +16,13 @@ HORIZON = 0
 
 
 def dynamic_simulation(method, path_data_sets=None, folder=None):
+    pp.INTERSECTION_CACHE = {}
     results = {}
     print 'retrieving the routes'
 
     if not path_data_sets:
         path_data_sets = get_path_data_sets(folder)
 
-    default_plans = pp.get_default_plans(path_data_sets)
     assignments = [Truck(i, path_data_sets[i]) for i in path_data_sets]
     assignments.sort(key=lambda x: x.start_time)
 
@@ -67,7 +67,6 @@ def simulation(folder, method, optimize=True):
     N_f, N_l, leaders, counter = method.clustering(G_p)
 
     # Joint optimization for all clusters
-    print "convex optimization"
     plans = pp.retrieve_adapted_plans(assignments, leaders, G_p)
 
     # Calculate fuel consumption
