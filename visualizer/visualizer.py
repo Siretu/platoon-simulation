@@ -51,11 +51,10 @@ if __name__ == "__main__":
             "t_s": 1500
         }
     }
-    path_data = get_path_data_sets(TEST_FOLDER)
     routes = get_routes(TEST_FOLDER)
     # route_info = get_route_info(TEST_FOLDER)
 
-    result = dynamic_simulation(GreedyPlatooning(), path_data_sets=path_data, folder=TEST_FOLDER)
+    result = dynamic_simulation(GreedyPlatooning(), folder=TEST_FOLDER)
     # result = simulation(TEST_FOLDER, GreedyPlatooning())
     # routes = {
     #     1: {"lat": 0, "lon": 500},

@@ -19,9 +19,12 @@ class ClusterGraph:
     def __setitem__(self, key, value):
         self.nodes[key] = value
 
-    def add(self, leader, follower, plan):
-        self.nodes[leader][follower] = plan
-        self.inverted_nodes[follower][leader] = plan
+    def __contains__(self, item):
+        return item in self.nodes
+
+    def add(self, follower, leader, plan):
+        self.nodes[follower][leader] = plan
+        self.inverted_nodes[leader][follower] = plan
 
 
 def change_to_follower(node, leaders, G, verbose):

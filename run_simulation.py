@@ -15,42 +15,57 @@ from constants import NONE
 HORIZON = 0
 
 
-def dynamic_simulation(method, path_data_sets=None, folder=None):
-    pp.INTERSECTION_CACHE = {}
-    results = {}
-    print 'retrieving the routes'
+def average_fuel_savings(method, folders, horizon=HORIZON, interval=None):
+    total = 0
+    for folder in folders:
+        result = dynamic_simulation(method, folder=folder, horizon=horizon, interval=interval)
+        fuel_saving = 1 - sum([x.current_fuel_consumption() for x in result]) / sum([x.default_plan.fuel for x in result])
+        total += fuel_saving
 
-    if not path_data_sets:
-        path_data_sets = get_path_data_sets(folder)
+    return total / len(folders)
+
+
+def dynamic_simulation(method, folder=None, horizon=HORIZON, interval=None):
+    pp.INTERSECTION_CACHE = {}
+    print 'retrieving the routes'
+    path_data_sets = get_path_data_sets(folder)
 
     assignments = [Truck(i, path_data_sets[i]) for i in path_data_sets]
+    path_data_sets = []
     assignments.sort(key=lambda x: x.start_time)
 
+    update_times = [x.start_time for x in assignments]
+
+    if interval:
+        update_times = range(int(update_times[0]), int(update_times[-1] + interval), interval)
+
+    expected = []
     current_trucks = {}
-    previous = 0
     print "computing the coordination graph"
-    for i,truck in enumerate(assignments):
-        map(lambda x: x.update(truck.start_time), current_trucks.values())
+    G_p = None
+    for time in update_times:
+        map(lambda x: x.update(time), current_trucks.values())
         # current_trucks = {i: current_trucks[i] for i in current_trucks if not current_trucks[i].done}
         # current_trucks[truck.id] = truck
-        current_trucks = {x.id: x for x in assignments if not x.done and x.start_time <= truck.start_time + HORIZON}
-        G_p = pp.build_graph(current_trucks)
+        current_trucks = {x.id: x for x in assignments if not x.done and x.start_time <= time + horizon}
+        G_p = pp.build_graph(current_trucks, G_p)
 
         # Clustering
-        print "clustering: %d: %d" % (i, len(current_trucks))
+        # print "clustering: %d: %d" % (i, len(current_trucks))
         N_f, N_l, leaders, counter = method.clustering(G_p)
         for follower in N_f:
             if leaders[follower] != NONE:
-                current_trucks[follower].change_plan(G_p[follower][leaders[follower]], truck.start_time)
+                current_trucks[follower].change_plan(G_p[follower][leaders[follower]], time)
                 pass
         pass
+        expected.append(sum([x.current_fuel_consumption() for x in assignments]))
 
         # # Joint optimization for all clusters
         # print "convex optimization"
         # plans = pp.retrieve_adapted_plans(assignments, leaders, G_p)
         # T_stars, f_opt_total, f_init_total = cv.optimize_all_clusters(leaders, N_l, plans, current_trucks)
         # previous = truck.start_time
-
+    print expected
     return assignments
 
 

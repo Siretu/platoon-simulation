@@ -93,3 +93,51 @@ class TestSimulation(unittest.TestCase):
         fuel_saving = sum([x.current_fuel_consumption() for x in result]) / sum([x.default_plan.fuel for x in result])
         print fuel_saving
         self.assertAlmostEqual(0.970021555973, fuel_saving, delta=10 ** -10)
+
+    def test_100_4_greedy(self):
+        result = dynamic_simulation(GreedyPlatooning(), folder='./testroutes/test100-4/')
+        fuel_saving = sum([x.current_fuel_consumption() for x in result]) / sum([x.default_plan.fuel for x in result])
+        print fuel_saving
+        self.assertAlmostEqual(0.94887673735, fuel_saving, delta=10 ** -10)
+
+    def test_100_4_random(self):
+        result = dynamic_simulation(RandomPlatooning(0), folder='./testroutes/test100-4/')
+        fuel_saving = sum([x.current_fuel_consumption() for x in result]) / sum([x.default_plan.fuel for x in result])
+        print fuel_saving
+        self.assertAlmostEqual(0.962134051418, fuel_saving, delta=10 ** -10)
+
+    def test_100_4_sub_deterministic(self):
+        result = dynamic_simulation(SubModularityPlatooning(), folder='./testroutes/test100-4/')
+        fuel_saving = sum([x.current_fuel_consumption() for x in result]) / sum([x.default_plan.fuel for x in result])
+        print fuel_saving
+        self.assertAlmostEqual(0.982172558959, fuel_saving, delta=10 ** -10)
+
+    def test_100_4_sub_stochastic(self):
+        result = dynamic_simulation(SubModularityPlatooning(False), folder='./testroutes/test100-4/')
+        fuel_saving = sum([x.current_fuel_consumption() for x in result]) / sum([x.default_plan.fuel for x in result])
+        print fuel_saving
+        self.assertAlmostEqual(0.981547641282, fuel_saving, delta=10 ** -10)
+
+    def test_100_5_greedy(self):
+        result = dynamic_simulation(GreedyPlatooning(), folder='./testroutes/test100-5/')
+        fuel_saving = sum([x.current_fuel_consumption() for x in result]) / sum([x.default_plan.fuel for x in result])
+        print fuel_saving
+        self.assertAlmostEqual(0.939128567203, fuel_saving, delta=10 ** -10)
+
+    def test_100_5_random(self):
+        result = dynamic_simulation(RandomPlatooning(0), folder='./testroutes/test100-5/')
+        fuel_saving = sum([x.current_fuel_consumption() for x in result]) / sum([x.default_plan.fuel for x in result])
+        print fuel_saving
+        self.assertAlmostEqual(0.947652410128, fuel_saving, delta=10 ** -10)
+
+    def test_100_5_sub_deterministic(self):
+        result = dynamic_simulation(SubModularityPlatooning(), folder='./testroutes/test100-5/')
+        fuel_saving = sum([x.current_fuel_consumption() for x in result]) / sum([x.default_plan.fuel for x in result])
+        print fuel_saving
+        self.assertAlmostEqual(0.955611271364, fuel_saving, delta=10 ** -10)
+
+    def test_100_5_sub_stochastic(self):
+        result = dynamic_simulation(SubModularityPlatooning(False), folder='./testroutes/test100-5/')
+        fuel_saving = sum([x.current_fuel_consumption() for x in result]) / sum([x.default_plan.fuel for x in result])
+        print fuel_saving
+        self.assertAlmostEqual(0.953373151581, fuel_saving, delta=10 ** -10)

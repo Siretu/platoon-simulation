@@ -63,6 +63,7 @@ class DefaultPlan(PlatoonPlan):
 
 
 INTERSECTION_CACHE = {}
+PLAN_CACHE = set()
 
 
 def find_route_intersection(route1, route2):
@@ -150,7 +151,7 @@ def calculate_default(path_data):
 
 
 def calculate_adaptation(ref_path_data, ada_path_data, intersection, verbose=False):
-    #  returns -1 if platooning is not feasible or beneficial, and the fuel saving (positive) if platooning is beneficial
+    #  returns None if platooning is not feasible or beneficial, and the fuel saving (positive) if platooning is beneficial
 
     ref_path = ref_path_data.path
     ref_path_weights = ref_path_data.path_weights
@@ -351,7 +352,7 @@ def get_distance2(path_weights_cum, start_pos, end_pos):
     return dist
 
 
-def build_graph(assignments):
+def build_graph(assignments, previous_graph=None):
     K = len(assignments)
     K_set = [x for x in assignments]  # truck indices set
     graph = ClusterGraph(K_set)
@@ -362,6 +363,11 @@ def build_graph(assignments):
         for i_l in xrange(i_f + 1, K):
             kl = K_set[i_l]
             kf = K_set[i_f]
+            # if previous_graph:
+            #     if kl in previous_graph and kf in previous_graph and (kl not in previous_graph[kf].keys() and kf not in previous_graph[kl].keys()):
+            #         continue
+            if (kl, kf) in PLAN_CACHE or (kf, kl) in PLAN_CACHE:
+                pass
             intersection = find_route_intersection(assignments[kl], assignments[kf])
             #      old_intersection = find_route_intersection_old(path_data_sets[kl]['path'],path_data_sets[kf]['path'])
             if intersection:
@@ -372,12 +378,14 @@ def build_graph(assignments):
                     plan = calculate_adaptation(assignments[kl], assignments[kf], intersection)
                     if plan:
                         if plan.fuel_diff > 0.:
+                            PLAN_CACHE.add((kf, kl))
                             graph.add(kf, kl, plan)
                     # swap role
                     intersection = (intersection[1], intersection[0])
                     plan = calculate_adaptation(assignments[kf], assignments[kl], intersection)
                     if plan:
                         if plan.fuel_diff > 0.:
+                            PLAN_CACHE.add((kl, kf))
                             graph.add(kl, kf, plan)
     return graph
 
