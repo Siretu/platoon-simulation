@@ -24,6 +24,7 @@ class Truck:
         self.done = False
         self.current_time = self.start_time
         self.plan_history = [self.plan]
+        self.completed_link_distance = 0
 
     def update(self, current_t):
         # Haven't started yet
@@ -33,12 +34,15 @@ class Truck:
         self.current_pos = self.pos_from_total()
 
     def pos_from_total(self):
-        remaining = self.current_distance()
-        for i, x in enumerate(self.path_weights):
+        remaining = self.current_distance() - self.completed_link_distance
+        total = remaining
+        current_i = self.current_pos['i']
+        for i, x in enumerate(self.path_weights[current_i:]):
             if remaining >= x:
                 remaining -= x
             else:
-                return {'i': i, 'x': remaining}
+                self.completed_link_distance += total - remaining
+                return {'i': i + current_i, 'x': remaining}
 
         self.done = True
 

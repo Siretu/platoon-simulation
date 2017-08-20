@@ -51,11 +51,15 @@ class GreedyPlatooning(PlatooningMethod):
                 if gain > 0.:  # push on the heap if the gain is positive
                     heapq.heappush(gain_heap, gains[nb])
 
-    def clustering(self, G, verbose=False, max_iter=1000000):
+    def clustering(self, G, verbose=False, max_iter=1000000, leaders=None):
         # init
-
         nodes = list(G.nodes)
-        leaders = {node: NONE for node in nodes}
+        if not leaders:
+            leaders = {node: NONE for node in nodes}
+        else:
+            for truck in G.nodes:
+                if truck not in leaders:
+                    leaders[truck] = NONE
         # caution: the list use negative gains for since it is a min heap
         # and we want to change the node with biggest gain
         gains = {n: [-get_delta_u(n, leaders, G), n] for n in nodes}
@@ -134,13 +138,12 @@ class RandomPlatooning(PlatooningMethod):
             gain = get_delta_u(nb, leaders, G)
             gains[nb] = [-gain, nb]  # new entry
 
-    def clustering(self, G, verbose=False, max_iter=1000000):
-        # node selection method: greedy, random
-
+    def clustering(self, G, verbose=False, max_iter=1000000, leaders=None):
         # init
-
         nodes = list(G.nodes)
-        leaders = {node: NONE for node in nodes}
+        if not leaders:
+            leaders = {node: NONE for node in nodes}
+
         gains = {node: 0 for node in nodes}  # current gain from platooning
         counter = 0
         # caution: the list use negative gains for since it is a min heap
@@ -193,14 +196,15 @@ class SubModularityPlatooning(PlatooningMethod):
         return "sub modularity"
 
     def clustering(self, G, verbose=False):
+        cache = {}
         X = [set()]
         Y = [set(G.nodes)]
 
         for i,x in enumerate(G.nodes):
             Xp = X[i].union([x])
             Yp = Y[i].difference([x])
-            a = self.f(Xp, G) - self.f(X[i], G)
-            b = self.f(Yp, G) - self.f(Y[i], G)
+            a = self.f(Xp, G, cache) - self.f(X[i], G, cache)
+            b = self.f(Yp, G, cache) - self.f(Y[i], G, cache)
             if self.deterministic:
                 keep_i = a >= b
             else:
@@ -239,7 +243,9 @@ class SubModularityPlatooning(PlatooningMethod):
         return real_followers, real_leaders, nodes, 1
 
     @staticmethod
-    def f(leaders, G):
+    def f(leaders, G, cache):
+        if str(leaders) in cache:
+            return cache[str(leaders)]
         followers = set(G.nodes).difference(leaders)
         total = 0
         for follower in followers:
@@ -249,4 +255,5 @@ class SubModularityPlatooning(PlatooningMethod):
                     max_gain = G[follower][neighbor].fuel_diff
             if max_gain > 0:
                 total += max_gain
+        cache[str(leaders)] = total
         return total

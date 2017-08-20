@@ -44,6 +44,7 @@ def dynamic_simulation(method, folder=None, horizon=HORIZON, interval=None):
     current_trucks = {}
     print "computing the coordination graph"
     G_p = cl.ClusterGraph([])
+    leaders = None
     for time in update_times:
         map(lambda x: x.update(time), current_trucks.values())
         current_trucks = {x.id: x for x in assignments if not x.done and x.start_time <= time + horizon}
