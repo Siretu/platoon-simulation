@@ -1,7 +1,9 @@
 import math
 import numpy as np
-from constants import NONE, LEADER, V_MAX, V_MIN, V_NOM, F0, F0p, F1, F1p, EPS, MIN_INTERSECTION_LENGTH, TIME_GAP
+
 from clusteralg import ClusterGraph
+from constants import NONE, LEADER, V_MAX, V_MIN, V_NOM, F0, F0p, F1, F1p, EPS, MIN_INTERSECTION_LENGTH, TIME_GAP
+# from clusteralg import ClusterGraph
 
 
 class PlatoonPlan(object):
@@ -11,11 +13,15 @@ class PlatoonPlan(object):
     def calculate_history(self, previous_t, current_t):
         raise NotImplementedError("This method is not implemented")
 
+    def recalculate_fuel(self, current_t):
+        pass
+
 
 class AdaptedPlan(PlatoonPlan):
     # Fuel consumption, fuel difference, distance to merge, distance to split, merge time, split time, arrival time, merge speed, platoon speed, split speed
-    def __init__(self, fuel, fuel_difference, merge_distance, split_distance, merge_time, split_time, arrival_time, merge_speed, platoon_speed, split_speed):
+    def __init__(self, fuel, default_fuel, fuel_difference, merge_distance, split_distance, merge_time, split_time, arrival_time, merge_speed, platoon_speed, split_speed):
         self.fuel = fuel
+        self.default_fuel = default_fuel
         self.fuel_diff = fuel_difference
         self.merge_distance = merge_distance
         self.split_distance = split_distance
@@ -28,6 +34,20 @@ class AdaptedPlan(PlatoonPlan):
         self.type = None
         self.leader = None
         self.speed = None
+        self.merge_fuel_multiplier = (F0 + F1 * merge_speed) * merge_speed
+        self.platoon_fuel_multiplier = (F0p + F1p * platoon_speed) * platoon_speed
+        self.split_fuel_multiplier = (F0 + F1 * split_speed) * split_speed
+
+    def recalculate_fuel(self, current_t):
+        total = 0
+        if current_t < self.merge_time:
+            total += self.merge_fuel_multiplier * (self.merge_time - current_t)
+        if current_t < self.split_time:
+            total += self.platoon_fuel_multiplier * (self.split_time - max(current_t, self.merge_time))
+        total += self.split_fuel_multiplier * (self.arrival_time - max(current_t, self.split_time))
+        self.fuel = total
+        self.default_fuel = (F0 + F1 * V_NOM) * V_NOM * (self.arrival_time - current_t)
+        self.fuel_diff = self.default_fuel - self.fuel
 
     def calculate_history(self, previous_t, current_t):
         from platooning.assignments import SpeedChange
@@ -63,7 +83,7 @@ class DefaultPlan(PlatoonPlan):
 
 
 INTERSECTION_CACHE = {}
-PLAN_CACHE = set()
+PLAN_CACHE = {}
 
 
 def find_route_intersection(route1, route2):
@@ -181,6 +201,10 @@ def calculate_adaptation(ref_path_data, ada_path_data, intersection, verbose=Fal
             print 'Cannot platoon since the time intervals do not overlap!'
         return
 
+    # Check if already at the end
+    if ref_start_pos['i'] >= len(ref_path) or ada_start_pos['i'] >= len(ada_path):
+        return
+
     Delta_F0 = F0 - F0p
     v_star_slow = max(
         [V_NOM * (1 - math.sqrt(1 - F1p / F1 + Delta_F0 / (F1 * V_NOM))), V_MIN])
@@ -257,7 +281,7 @@ def calculate_adaptation(ref_path_data, ada_path_data, intersection, verbose=Fal
         if ada_d_s_opt > ada_d_s + d_p:
             if verbose:
                 print 'Cannot platoon since the merge point would be past the common segment!'
-            return
+            return -1 # Return -1 instead of None so that we can catch this as a case where an adapted plan could exist in the future
 
     # //////// Splitting //////////
 
@@ -305,15 +329,16 @@ def calculate_adaptation(ref_path_data, ada_path_data, intersection, verbose=Fal
         print 'difference between computed arrival time and test arrival time: {}\n (Should be zero!)'.format(
             t_a_test - t_a_opt)
 
-    if f < ada_f_def:
-        if verbose:
+    ada_f_def = (F0 + F1 * ref_v_def) * ada_path_L
+
+    if verbose:
+        if f < ada_f_def:
             print 'platooning is better'
-        # Fuel consumption, fuel difference, distance to merge, distance to split, merge time, split time, arrival time
-        return AdaptedPlan(f, ada_f_def - f, ada_d_s_opt, ada_d_sp_opt, t_m_opt, t_sp_opt, t_a_opt, v_star_s, v_star_sp, ref_v_def)
-    else:
-        if verbose:
+        else:
             print 'not platooning is better'
-        return
+
+    # Fuel consumption, fuel difference, distance to merge, distance to split, merge time, split time, arrival time
+    return AdaptedPlan(f, ada_f_def, ada_f_def - f, ada_d_s_opt, ada_d_sp_opt, t_m_opt, t_sp_opt, t_a_opt, v_star_s, v_star_sp, ref_v_def)
 
 
 def get_distance(path_weights, start_pos, end_pos):
@@ -357,6 +382,7 @@ def build_graph(assignments, previous_graph=None):
     K_set = [x for x in assignments]  # truck indices set
     graph = ClusterGraph(K_set)
 
+    # graph = None
     if K < 2: return graph
 
     for i_f in xrange(K):
@@ -366,8 +392,10 @@ def build_graph(assignments, previous_graph=None):
             # if previous_graph:
             #     if kl in previous_graph and kf in previous_graph and (kl not in previous_graph[kf].keys() and kf not in previous_graph[kl].keys()):
             #         continue
-            if (kl, kf) in PLAN_CACHE or (kf, kl) in PLAN_CACHE:
-                pass
+            if (kl, kf) in PLAN_CACHE:
+                graph.add(kl, kf, PLAN_CACHE[(kl, kf)])
+            if (kf, kl) in PLAN_CACHE:
+                graph.add(kf, kl, PLAN_CACHE[(kf, kl)])
             intersection = find_route_intersection(assignments[kl], assignments[kf])
             #      old_intersection = find_route_intersection_old(path_data_sets[kl]['path'],path_data_sets[kf]['path'])
             if intersection:
@@ -377,15 +405,15 @@ def build_graph(assignments, previous_graph=None):
                 if intersection_length >= MIN_INTERSECTION_LENGTH:
                     plan = calculate_adaptation(assignments[kl], assignments[kf], intersection)
                     if plan:
-                        if plan.fuel_diff > 0.:
-                            PLAN_CACHE.add((kf, kl))
+                        if plan != -1 and plan.fuel_diff > 0.:
+                            PLAN_CACHE[(kf, kl)] = plan
                             graph.add(kf, kl, plan)
                     # swap role
                     intersection = (intersection[1], intersection[0])
                     plan = calculate_adaptation(assignments[kf], assignments[kl], intersection)
                     if plan:
-                        if plan.fuel_diff > 0.:
-                            PLAN_CACHE.add((kl, kf))
+                        if plan != -1 and plan.fuel_diff > 0.:
+                            PLAN_CACHE[(kl, kf)] = plan
                             graph.add(kl, kf, plan)
     return graph
 

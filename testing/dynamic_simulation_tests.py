@@ -38,13 +38,13 @@ class TestSimulation(unittest.TestCase):
         result = dynamic_simulation(SubModularityPlatooning(), folder='./testroutes/test100-1/')
         fuel_saving = sum([x.current_fuel_consumption() for x in result]) / sum([x.default_plan.fuel for x in result])
         print fuel_saving
-        self.assertAlmostEqual(0.965915783967, fuel_saving, delta=10 ** -10)
+        self.assertAlmostEqual(0.95890707523, fuel_saving, delta=10 ** -10)
 
     def test_100_1_sub_stochastic(self):
         result = dynamic_simulation(SubModularityPlatooning(False), folder='./testroutes/test100-1/')
         fuel_saving = sum([x.current_fuel_consumption() for x in result]) / sum([x.default_plan.fuel for x in result])
         print fuel_saving
-        self.assertAlmostEqual(0.969895361896, fuel_saving, delta=10 ** -10)
+        self.assertAlmostEqual(0.968866387747, fuel_saving, delta=10 ** -10)
 
     def test_100_2_greedy(self):
         result = dynamic_simulation(GreedyPlatooning(), folder='./testroutes/test100-2/')

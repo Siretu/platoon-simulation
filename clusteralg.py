@@ -5,13 +5,15 @@ Created on Thu Jan 22 10:46:31 2015
 @author: sebastian
 """
 
-from constants import LEADER, NONE
+from constants import LEADER, NONE, MIN_INTERSECTION_LENGTH
+import numpy as np
 
 
 class ClusterGraph:
     def __init__(self, K_set):
         self.nodes = {key: {} for key in K_set}
         self.inverted_nodes = {key: {} for key in K_set}
+        self.potential_edges = {}
 
     def __getitem__(self, item):
         return self.nodes[item]
@@ -23,8 +25,65 @@ class ClusterGraph:
         return item in self.nodes
 
     def add(self, follower, leader, plan):
+        if follower not in self.nodes:
+            self.nodes[follower] = {}
+        if leader not in self.inverted_nodes:
+            self.inverted_nodes[leader] = {}
         self.nodes[follower][leader] = plan
         self.inverted_nodes[leader][follower] = plan
+
+    def update(self, new_trucks, current_trucks, time):
+        from pairwise_planning import find_route_intersection, calculate_adaptation
+        # self.clear_old(current_trucks)
+
+        for follower in self.nodes:
+            for leader in self.nodes[follower]:
+                self.nodes[follower][leader].recalculate_fuel(time)
+
+        for truck in new_trucks:
+            self.nodes[truck.id] = {}
+            self.inverted_nodes[truck.id] = {}
+            self.potential_edges[truck.id] = {}
+            for old_truck_id in self.nodes:
+                if old_truck_id not in current_trucks.keys() or old_truck_id == truck.id:
+                    continue
+                old_truck = current_trucks[old_truck_id]
+                intersection = find_route_intersection(truck, old_truck)
+                if intersection:
+                    intersection_length = np.sum(truck.path_weights[intersection[0][0]:intersection[0][1] + 1])
+                    if intersection_length >= MIN_INTERSECTION_LENGTH:
+                        plan = calculate_adaptation(truck, old_truck, intersection)
+                        if plan:
+                            if plan == -1 or plan.fuel_diff < 0.:
+                                self.potential_edges[old_truck_id][truck.id] = intersection
+                            else:
+                                self.add(old_truck.id, truck.id, plan)
+                        # swap role
+                        intersection = (intersection[1], intersection[0])
+                        plan = calculate_adaptation(old_truck, truck, intersection)
+                        if plan:
+                            if plan == -1 or plan.fuel_diff < 0.:
+                                self.potential_edges[truck.id][old_truck_id] = intersection
+                            else:
+                                self.add(truck.id, old_truck.id, plan)
+
+        for kf in current_trucks:
+            for kl in self.potential_edges[kf].keys()[:]:
+                if kl not in current_trucks:
+                    del(self.potential_edges[kf][kl])
+                    continue
+                intersection = self.potential_edges[kf][kl]
+                plan = calculate_adaptation(current_trucks[kl], current_trucks[kf], intersection)
+                if plan:
+                    if plan != -1 and plan.fuel_diff > 0.:
+                        self.add(kf, kl, plan)
+                        del(self.potential_edges[kf][kl])
+
+    def clear_old(self, current_trucks):
+        self.nodes = {x: self.nodes[x] for x in self.nodes if x in current_trucks}
+        self.inverted_nodes = {x: self.inverted_nodes[x] for x in self.inverted_nodes if x in current_trucks}
+        for follower in self.nodes:
+            self.nodes[follower] = {x: self.nodes[follower][x] for x in self.nodes[follower] if x in current_trucks}
 
 
 def change_to_follower(node, leaders, G, verbose):

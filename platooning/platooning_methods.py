@@ -82,6 +82,9 @@ class GreedyPlatooning(PlatooningMethod):
             # update the gains
             self.update_u(node, leaders, gains, gain_heap, G)
 
+        if counter == max_iter:
+            print "Max"
+
         # clean-up
 
         # check if all leaders have followers
@@ -193,9 +196,9 @@ class SubModularityPlatooning(PlatooningMethod):
         X = [set()]
         Y = [set(G.nodes)]
 
-        for i in range(len(Y[0])):
-            Xp = X[i].union([i])
-            Yp = Y[i].difference([i])
+        for i,x in enumerate(G.nodes):
+            Xp = X[i].union([x])
+            Yp = Y[i].difference([x])
             a = self.f(Xp, G) - self.f(X[i], G)
             b = self.f(Yp, G) - self.f(Y[i], G)
             if self.deterministic:
@@ -241,9 +244,9 @@ class SubModularityPlatooning(PlatooningMethod):
         total = 0
         for follower in followers:
             max_gain = -100000
-            for neighbor in G.inverted_nodes[follower]:
-                if neighbor in leaders and G.inverted_nodes[follower][neighbor].fuel_diff > max_gain:
-                    max_gain = G.inverted_nodes[follower][neighbor].fuel_diff
-            if max_gain > -10000:
+            for neighbor in G[follower]:
+                if neighbor in leaders and G[follower][neighbor].fuel_diff > max_gain:
+                    max_gain = G[follower][neighbor].fuel_diff
+            if max_gain > 0:
                 total += max_gain
         return total
