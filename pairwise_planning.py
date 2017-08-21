@@ -48,6 +48,7 @@ class AdaptedPlan(PlatoonPlan):
         self.fuel = total
         self.default_fuel = (F0 + F1 * V_NOM) * V_NOM * (self.arrival_time - current_t)
         self.fuel_diff = self.default_fuel - self.fuel
+        return self.fuel_diff
 
     def calculate_history(self, previous_t, current_t):
         from platooning.assignments import SpeedChange

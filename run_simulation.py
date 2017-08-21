@@ -20,8 +20,12 @@ def average_fuel_savings(method, folders, horizon=HORIZON, interval=None, cutoff
     for folder in folders:
         result = dynamic_simulation(method, folder=folder, horizon=horizon, interval=interval)
         sliced_result = [x for x in result if x.start_time >= cutoff]
-        fuel_saving = 1 - sum([x.current_fuel_consumption() for x in sliced_result]) / sum([x.default_plan.fuel for x in sliced_result])
+        if len(sliced_result) > 0:
+            fuel_saving = 1 - sum([x.current_fuel_consumption() for x in sliced_result]) / sum([x.default_plan.fuel for x in sliced_result])
+        else:
+            fuel_saving = 0
         total += fuel_saving
+        print fuel_saving
 
     return total / len(folders)
 
@@ -62,7 +66,7 @@ def dynamic_simulation(method, folder=None, horizon=HORIZON, interval=None):
         pass
         expected.append(sum([x.current_fuel_consumption() for x in assignments]))
 
-    print expected
+    # print expected
     return assignments
 
 

@@ -193,7 +193,9 @@ class SubModularityPlatooning(PlatooningMethod):
         self.seed = seed
 
     def __str__(self):
-        return "sub modularity"
+        if self.deterministic:
+            return "deterministic sub modularity"
+        return "stochastic sub modularity"
 
     def clustering(self, G, verbose=False):
         cache = {}

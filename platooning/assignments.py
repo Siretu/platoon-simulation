@@ -50,11 +50,14 @@ class Truck:
         if len(self.speed_history) > 0 and current_time >= self.start_time:
             self.speed_history = [x for x in self.speed_history if x.start_time <= current_time]
             self.speed_history[-1].end_time = current_time
-
         self.plan_history.append(new_plan)
         self.plan = new_plan
-        history = self.plan.calculate_history(current_time, self.deadline)
-        self.speed_history += history
+        if current_time < self.start_time: # Calculate from start time instead
+            history = self.plan.calculate_history(self.start_time, self.deadline)
+            self.speed_history = history
+        else:
+            history = self.plan.calculate_history(current_time, self.deadline)
+            self.speed_history += history
 
     def current_fuel_consumption(self):
         total = 0
