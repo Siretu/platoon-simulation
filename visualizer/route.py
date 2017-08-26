@@ -61,7 +61,7 @@ class Route(Widget):
             if self.time < change.end_time:
                 self.speed = change.speed
                 if change.platooning != self.following and self.truck in self.canvas.children:
-                    self.following = change.platooning
+                    self.following = change.platooning != -1
                     self.canvas.children.remove(self.truck)
                     with self.canvas:
                         if self.following:

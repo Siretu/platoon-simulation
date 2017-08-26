@@ -20,7 +20,7 @@ class Truck:
         self.default_plan = calculate_default(path_data_set)
         self.plan = self.default_plan
         self.speed_history = []
-        self.speed_history += self.plan.calculate_history(self.start_time, self.deadline)
+        self.speed_history += self.plan.calculate_history(self.start_time, self.plan.arrival_time)
         self.done = False
         self.current_time = self.start_time
         self.plan_history = [self.plan]
@@ -46,28 +46,48 @@ class Truck:
 
         self.done = True
 
+    def link_pos(self, distance):
+        for i, x in enumerate(self.path_weights):
+            if distance >= x:
+                distance -= x
+            else:
+                return {'i': i, 'x': distance}
+        return {'i': len(self.path) - 1, 'x': self.path_weights[-1]}
+
     def change_plan(self, new_plan, current_time):
         if len(self.speed_history) > 0 and current_time >= self.start_time:
             self.speed_history = [x for x in self.speed_history if x.start_time <= current_time]
             self.speed_history[-1].end_time = current_time
-        self.plan_history.append(new_plan)
+            # Delete speed change with zero duration
+            if self.speed_history[-1].start_time == self.speed_history[-1].end_time:
+                self.speed_history = self.speed_history[:-1]
+        if new_plan != self.plan_history[-1]:
+            self.plan_history.append(new_plan)
         self.plan = new_plan
         if current_time < self.start_time: # Calculate from start time instead
-            history = self.plan.calculate_history(self.start_time, self.deadline)
+            history = self.plan.calculate_history(self.start_time, self.plan.arrival_time)
             self.speed_history = history
         else:
-            history = self.plan.calculate_history(current_time, self.deadline)
+            history = self.plan.calculate_history(current_time, self.plan.arrival_time)
+            # Merge speed history
+            if len(self.speed_history) > 0 and abs(history[0].speed - self.speed_history[-1].speed) < 0.0001 and history[0].platooning == self.speed_history[-1].platooning:
+                self.speed_history[-1].end_time = history[0].end_time
+                history = history[1:]
             self.speed_history += history
+            history = []
+
+    def is_platoon_follower(self, t):
+        for change in self.speed_history:
+            if change.start_time < t < change.end_time:
+                return change.platooning != -1
+        return False
 
     def current_fuel_consumption(self):
         total = 0
         for i, speed_change in enumerate(self.speed_history):
-            if i == len(self.speed_history) - 1:
-                end_t = self.deadline
-            else:
-                end_t = self.speed_history[i+1].start_time
+            end_t = speed_change.end_time
             d = speed_change.speed * (end_t - speed_change.start_time)
-            if speed_change.platooning and False:
+            if speed_change.platooning != -1:
                 fV = F0p + F1p * speed_change.speed
             else:
                 fV = F0 + F1 * speed_change.speed
@@ -91,11 +111,13 @@ class Truck:
 
 
 class SpeedChange:
-    def __init__(self, start_time, speed, platooning=False, end_time=None):
+    def __init__(self, start_time, speed, platooning=-1, end_time=None):
         self.start_time = start_time
         self.speed = speed
         self.platooning = platooning
         self.end_time = end_time
 
     def __str__(self):
-        return "%f m/s at t: %f" % (self.speed, self.start_time)
+        if self.platooning == -1:
+            return "%f m/s at t: %f" % (self.speed, self.start_time)
+        return "%f m/s at t: %f (platooning: %d)" % (self.speed, self.start_time, self.platooning)

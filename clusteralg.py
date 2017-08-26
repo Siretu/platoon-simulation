@@ -37,8 +37,22 @@ class ClusterGraph:
         # self.clear_old(current_trucks)
 
         for follower in self.nodes:
-            for leader in self.nodes[follower]:
-                self.nodes[follower][leader].recalculate_fuel(time)
+            for leader in self.nodes[follower].keys():
+                # self.nodes[follower][leader].recalculate_fuel(time)
+                if leader not in current_trucks or follower not in current_trucks:
+                    del(self.nodes[follower][leader])
+                    del(self.inverted_nodes[leader][follower])
+                    continue
+                intersection = find_route_intersection(current_trucks[leader], current_trucks[follower])
+                if intersection:
+                    plan = calculate_adaptation(current_trucks[leader], current_trucks[follower], intersection)
+                    if plan and plan != -1:
+                        self.add(follower, leader, plan)
+                    else:
+                        if leader in self.nodes[follower]:
+                            del (self.nodes[follower][leader])
+                            del (self.inverted_nodes[leader][follower])
+
 
         for truck in new_trucks:
             self.nodes[truck.id] = {}
@@ -114,7 +128,7 @@ def change_to_follower(node, leaders, G, verbose):
 
 def change_to_leader(node, leaders, G, verbose):
     # updates leaders in place so that node becomes a leader and its neighbors
-    # that become its followers are upadted accordingly
+    # that become its followers are updated accordingly
     if verbose:
         print 'node ' + str(node) + ' becomes a leader'
     leaders[node] = LEADER

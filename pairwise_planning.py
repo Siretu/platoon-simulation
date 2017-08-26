@@ -19,7 +19,7 @@ class PlatoonPlan(object):
 
 class AdaptedPlan(PlatoonPlan):
     # Fuel consumption, fuel difference, distance to merge, distance to split, merge time, split time, arrival time, merge speed, platoon speed, split speed
-    def __init__(self, fuel, default_fuel, fuel_difference, merge_distance, split_distance, merge_time, split_time, arrival_time, merge_speed, platoon_speed, split_speed):
+    def __init__(self, fuel, default_fuel, fuel_difference, merge_distance, split_distance, merge_time, split_time, arrival_time, merge_speed, platoon_speed, split_speed, leader, current_t):
         self.fuel = fuel
         self.default_fuel = default_fuel
         self.fuel_diff = fuel_difference
@@ -32,11 +32,12 @@ class AdaptedPlan(PlatoonPlan):
         self.platoon_speed = platoon_speed
         self.split_speed = split_speed
         self.type = None
-        self.leader = None
+        self.leader = leader
         self.speed = None
         self.merge_fuel_multiplier = (F0 + F1 * merge_speed) * merge_speed
         self.platoon_fuel_multiplier = (F0p + F1p * platoon_speed) * platoon_speed
         self.split_fuel_multiplier = (F0 + F1 * split_speed) * split_speed
+        self.current_t = current_t
 
     def recalculate_fuel(self, current_t):
         total = 0
@@ -56,9 +57,9 @@ class AdaptedPlan(PlatoonPlan):
         if previous_t < self.merge_time:
             result.append(SpeedChange(previous_t, self.merge_speed))
             if current_t > self.merge_time:
-                result.append(SpeedChange(self.merge_time, self.platoon_speed, platooning=True))
+                result.append(SpeedChange(self.merge_time, self.platoon_speed, platooning=self.leader))
         elif previous_t < self.split_time:
-            result.append(SpeedChange(previous_t, self.platoon_speed, platooning=True))
+            result.append(SpeedChange(previous_t, self.platoon_speed, platooning=self.leader))
         else:
             result.append(SpeedChange(previous_t, self.split_speed))
 
@@ -174,10 +175,11 @@ def calculate_default(path_data):
 def calculate_adaptation(ref_path_data, ada_path_data, intersection, verbose=False):
     #  returns None if platooning is not feasible or beneficial, and the fuel saving (positive) if platooning is beneficial
 
+    ref_current_t = ref_path_data.current_time
     ref_path = ref_path_data.path
     ref_path_weights = ref_path_data.path_weights
     ref_start_pos = ref_path_data.current_pos  # index of the current link (!)
-    ref_t_s = ref_path_data.start_time
+    ref_t_s = ref_path_data.current_time
     ref_t_d = ref_path_data.deadline
     ref_merge_ind = intersection[0][0]
     ref_split_ind = intersection[0][1]
@@ -185,10 +187,11 @@ def calculate_adaptation(ref_path_data, ada_path_data, intersection, verbose=Fal
     #  ref_f_def = ref_default_plan['f']
     #  ref_t_a_def = ref_default_plan['t_a']
 
+    ada_current_t = ada_path_data.current_time
     ada_path = ada_path_data.path
     ada_path_weights = ada_path_data.path_weights
     ada_start_pos = ada_path_data.current_pos
-    ada_t_s = ada_path_data.start_time
+    ada_t_s = ada_path_data.current_time
     ada_t_d = ada_path_data.deadline
     ada_merge_ind = intersection[1][0]
     ada_split_ind = intersection[1][1]
@@ -212,7 +215,6 @@ def calculate_adaptation(ref_path_data, ada_path_data, intersection, verbose=Fal
     v_star_fast = min(
         [V_NOM * (1 + math.sqrt(1 - F1p / F1 + Delta_F0 / (F1 * V_NOM))), V_MAX])
 
-    #  try:
     ref_end_pos = {'i': len(ref_path_weights) - 1, 'x': ref_path_weights[-1]}
     ref_first_merge_pos = {'i': ref_merge_ind, 'x': 0.}
     ref_last_split_pos = {'i': ref_split_ind, 'x': ref_path_weights[ref_split_ind]}
@@ -220,8 +222,14 @@ def calculate_adaptation(ref_path_data, ada_path_data, intersection, verbose=Fal
     ada_end_pos = {'i': len(ada_path_weights) - 1, 'x': ada_path_weights[-1]}
     ada_first_merge_pos = {'i': ada_merge_ind, 'x': 0.}
     ada_last_split_pos = {'i': ada_split_ind, 'x': ada_path_weights[ada_split_ind]}
-    #  except:
-    #    print 'fail'
+
+    if ref_merge_ind <= ref_start_pos['i'] or ada_merge_ind <= ada_start_pos['i']:
+        delta = max(ref_start_pos['i'] - ref_merge_ind, ada_start_pos['i'] - ada_merge_ind) + 1
+        ref_first_merge_pos['i'] += delta
+        ada_first_merge_pos['i'] += delta
+
+    if ada_last_split_pos['i'] < ada_first_merge_pos['i'] or ref_last_split_pos['i'] < ada_first_merge_pos['i']:
+        return
 
     if get_distance2(ref_path_data.path_weights_cum, ref_start_pos, ref_last_split_pos) == 0.:  # we have passed the common part
         if verbose:
@@ -338,8 +346,8 @@ def calculate_adaptation(ref_path_data, ada_path_data, intersection, verbose=Fal
         else:
             print 'not platooning is better'
 
-    # Fuel consumption, fuel difference, distance to merge, distance to split, merge time, split time, arrival time
-    return AdaptedPlan(f, ada_f_def, ada_f_def - f, ada_d_s_opt, ada_d_sp_opt, t_m_opt, t_sp_opt, t_a_opt, v_star_s, v_star_sp, ref_v_def)
+    # Fuel consumption, default fuel, fuel difference, distance to merge, distance to split, merge time, split time, arrival time
+    return AdaptedPlan(f, ada_f_def, ada_f_def - f, ada_d_s_opt, ada_d_sp_opt, t_m_opt, t_sp_opt, t_a_opt, v_star_s, ref_v_def, v_star_sp, ref_path_data.id, ada_t_s)
 
 
 def get_distance(path_weights, start_pos, end_pos):

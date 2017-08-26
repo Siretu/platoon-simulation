@@ -11,6 +11,7 @@ from route_calculation import get_path_data_sets
 import numpy as np
 import constants
 from constants import NONE
+from verifier import verify_truck
 
 HORIZON = 0
 
@@ -58,15 +59,21 @@ def dynamic_simulation(method, folder=None, horizon=HORIZON, interval=None):
 
         # Clustering
         # print "clustering: %d: %d" % (len([x for x in assignments if x.start_time <= time + horizon]), len(current_trucks))
-        N_f, N_l, leaders, counter = method.clustering(G_p)
-        for follower in N_f:
-            if leaders[follower] != NONE and follower in current_trucks:
+        N_f, N_l, leaders, counter = method.clustering(G_p, leaders=leaders)
+        for follower in current_trucks:
+            if leaders[follower] >= 0:
                 current_trucks[follower].change_plan(G_p[follower][leaders[follower]], time)
                 pass
+            else:
+                current_trucks[follower].change_plan(current_trucks[follower].default_plan, time)
         pass
         expected.append(sum([x.current_fuel_consumption() for x in assignments]))
+        pass
 
-    # print expected
+    print expected
+    print expected[-1]/expected[0]
+    print "Verifying result"
+    [verify_truck(x, {y.id: y for y in assignments}) for x in assignments]
     return assignments
 
 

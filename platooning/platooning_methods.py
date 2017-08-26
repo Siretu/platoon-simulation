@@ -58,7 +58,7 @@ class GreedyPlatooning(PlatooningMethod):
             leaders = {node: NONE for node in nodes}
         else:
             for truck in G.nodes:
-                if truck not in leaders:
+                if truck not in leaders or (leaders[truck] > 0 and leaders[truck] not in G[truck]):
                     leaders[truck] = NONE
         # caution: the list use negative gains for since it is a min heap
         # and we want to change the node with biggest gain
