@@ -22,6 +22,7 @@ resolution = 0.1  # .1 deg/pixel
 # offset_top = 250
 height, width = density_map.shape
 density_map[density_map == 255] = 0
+density_map[density_map < 120] = 0
 coordinate_precision = 1000000.
 
 
@@ -107,6 +108,8 @@ def calc_route2(start, goal, verbose=False):
     r1 = conn.getresponse()
     result = json.loads(r1.read())
     conn.close()
+    if 'routes' not in result:
+        return
     result = result['routes'][0]
     result['link_lengths'] = np.array(result['distances'])
     result['node_coords_lat'] = np.array(result['lats'])
@@ -114,20 +117,6 @@ def calc_route2(start, goal, verbose=False):
     result['node_ids'] = np.array(result['node_ids'])
 
     return result
-
-    # start = {'lat': 60.457217797743944, 'lon': 17.3968505859375}
-    # goal = {'lat': 59.62888035850546, 'lon': 17.9022216796875}
-    # request_template = '/route/v1/driving/{},{};{},{}?overview=false&generate_hints=false'
-    # request = request_template.format(start['lon'], start['lat'], goal['lon'], goal['lat'])
-    # conn = httplib.HTTPConnection(osrm_url)
-    # conn.request("GET", request)
-    # r1 = conn.getresponse()
-    # result = json.loads(r1.read())
-    # conn.close()
-    #
-    # return result
-
-
 
 
 def calc_route(start_loc, goal_loc, verbose=False):

@@ -1,6 +1,7 @@
-from constants import F0p, F1p, F0, F1
-from pairwise_planning import calculate_default, DefaultPlan
 import numpy as np
+
+from constants import F0p, F1p, F0, F1, V_MAX, V_NOM
+from pairwise_planning import DefaultPlan, get_distance
 
 
 class Truck:
@@ -17,14 +18,35 @@ class Truck:
         self.deadline = path_data_set['arrival_dline']
         self.current_pos = path_data_set['start_pos']
 
-        self.default_plan = calculate_default(path_data_set)
+        self.current_time = self.start_time
+        self.default_plan = self.calculate_default()
         self.plan = self.default_plan
         self.speed_history = []
         self.speed_history += self.plan.calculate_history(self.start_time, self.plan.arrival_time)
         self.done = False
-        self.current_time = self.start_time
         self.plan_history = [self.plan]
         self.completed_link_distance = 0
+
+    def calculate_default(self):
+        # returns the arrival time, default speed, and fuel consumption of the default plan
+
+        end_pos = {'i': len(self.path_weights) - 1, 'x': self.path_weights[-1]}
+        path_L = get_distance(self.path_weights, self.current_pos, end_pos)
+
+        v_d = path_L / (self.deadline - self.current_time)  # speed to arrive exactly at the deadline
+
+        if v_d > V_MAX + 0.0001: # Add small delta for float comparison
+            print "Warning: a truck cannot make its deadline!"
+        if v_d <= V_NOM:
+            t_a = path_L / V_NOM + self.current_time
+            v_default = V_NOM
+        elif v_d > V_NOM:
+            t_a = path_L / v_d + self.current_time
+            v_default = v_d
+
+        f = (F0 + F1 * v_default) * path_L
+
+        return DefaultPlan(t_a, f, v_default)
 
     def update(self, current_t):
         # Haven't started yet
@@ -47,7 +69,7 @@ class Truck:
         self.done = True
 
     def link_pos(self, distance):
-        for i, x in enumerate(self.path_weights):
+        for i, x in enumerate(self.path_weights[:-1]):
             if distance >= x:
                 distance -= x
             else:

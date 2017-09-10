@@ -7,10 +7,10 @@ import convex_optimization as cv
 import pairwise_planning as pp
 from platooning.assignments import Truck
 from platooning.platooning_methods import GreedyPlatooning
-from route_calculation import get_path_data_sets
+from route_calculation import get_path_data_sets, get_routes
 import numpy as np
 import constants
-from constants import NONE
+from constants import NONE, LEADER
 from verifier import verify_truck
 
 HORIZON = 0
@@ -58,15 +58,13 @@ def dynamic_simulation(method, folder=None, horizon=HORIZON, interval=None):
         G_p.update(new_trucks, current_trucks, time)
 
         # Clustering
-        # print "clustering: %d: %d" % (len([x for x in assignments if x.start_time <= time + horizon]), len(current_trucks))
+        print "clustering: %d: %d" % (len([x for x in assignments if x.start_time <= time + horizon]), len(current_trucks))
         N_f, N_l, leaders, counter = method.clustering(G_p, leaders=leaders)
         for follower in current_trucks:
             if leaders[follower] >= 0:
                 current_trucks[follower].change_plan(G_p[follower][leaders[follower]], time)
-                pass
-            else:
-                current_trucks[follower].change_plan(current_trucks[follower].default_plan, time)
-        pass
+            else:#if leaders[follower] == LEADER:
+                current_trucks[follower].change_plan(current_trucks[follower].calculate_default(), time)
         expected.append(sum([x.current_fuel_consumption() for x in assignments]))
         pass
 

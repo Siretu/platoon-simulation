@@ -11,7 +11,7 @@ from route import FRAMERATE
 from route_calculation import generate_routes, get_routes, get_path_data_sets
 from run_simulation import dynamic_simulation, simulation
 
-TEST_FOLDER = '../testing/testroutes/test100-5/'
+TEST_FOLDER = '../testing/testroutes/test100-7/'
 
 Window.clearcolor = (1, 1, 1, 1)
 
@@ -32,7 +32,7 @@ def start(routes):
 
 
 if __name__ == "__main__":
-    # generate_routes(100, "../testing/testroutes/test100-4/")
+    # generate_routes(100, "../testing/testroutes/test100-7/")
     path_data = {
         0: {
             "arrival_dline":150000,

@@ -88,6 +88,21 @@ INTERSECTION_CACHE = {}
 PLAN_CACHE = {}
 
 
+def find_first_index(known_intersection, path1, path2):
+    # Given a known intersection, find the indexes where route1 and route2 first intersect.
+    start_ind1 = np.where(path1 == known_intersection)[0][0]
+    start_ind2 = np.where(path2 == known_intersection)[0][0]
+
+    # Look at the route with the shortest previous nodes, and search for previous intersections with the other route
+    if start_ind1 >= start_ind2:
+        ind2 = np.where(path2[:start_ind2 + 1] == path1[start_ind1 - start_ind2:start_ind1 + 1])[0][0]
+        ind1 = ind2 + (start_ind1 - start_ind2)
+    elif start_ind1 < start_ind2:
+        ind1 = np.where(path1[:start_ind1 + 1] == path2[start_ind2 - start_ind1:start_ind2 + 1])[0][0]
+        ind2 = ind1 + (start_ind2 - start_ind1)
+
+    return ind1, ind2
+
 def find_route_intersection(route1, route2):
     if (route1.id, route2.id) in INTERSECTION_CACHE:
         return INTERSECTION_CACHE[(route1.id, route2.id)]
@@ -99,28 +114,18 @@ def find_route_intersection(route1, route2):
     if not intersections:
         return False
 
-    def find_first_index(known_intersection):
-        ## Given a known intersection, find the indexes where route1 and route2 first intersect.
-        start_ind1 = np.where(path1 == known_intersection)[0][0]
-        start_ind2 = np.where(path2 == known_intersection)[0][0]
-
-        # Look at the route with the shortest previous nodes, and search for previous intersections with the other route
-        if start_ind1 >= start_ind2:
-            ind2 = np.where(path2[:start_ind2 + 1] == path1[start_ind1 - start_ind2:start_ind1 + 1])[0][0]
-            ind1 = ind2 + (start_ind1 - start_ind2)
-        elif start_ind1 < start_ind2:
-            ind1 = np.where(path1[:start_ind1 + 1] == path2[start_ind2 - start_ind1:start_ind2 + 1])[0][0]
-            ind2 = ind1 + (start_ind2 - start_ind1)
-
-        return ind1, ind2
-
-    ind1_start, ind2_start = find_first_index(intersections.pop())
+    ind1_start, ind2_start = find_first_index(intersections.pop(), path1, path2)
 
     ind1_split = ind1_start + len(intersections)
     ind2_split = ind2_start + len(intersections)
 
-    split1, split2, start1, start2 = convert_edge_intersection(ind1_split, ind1_start, ind2_split, ind2_start, route1, route2)
+    result = convert_edge_intersection(ind1_split, ind1_start, ind2_split, ind2_start, route1, route2)
+    if not result:
+        return False
+    split1, split2, start1, start2 = result
     intersection = (start1, split1), (start2, split2)
+    if route1.path[start1] != route2.path[start2] or route1.path[split1] != route2.path[split2]:
+        print "Error: wrong intersection result"
     INTERSECTION_CACHE[(route1.id, route2.id)] = intersection
     return intersection
 
@@ -142,7 +147,16 @@ def convert_edge_intersection(ind1_split, ind1_start, ind2_split, ind2_start, ro
         diff = min(split1 - start1, split2 - start2)
         split1 = start1 + diff
         split2 = start2 + diff
-    return split1, split2, start1, start2
+
+    intersections = set(route1.path[start1:split1]) & set(route2.path[start2:split2])
+    if not intersections:
+        return False
+    int1_start, int2_start = find_first_index(intersections.pop(), route1.path[start1:split1], route2.path[start2:split2])
+    s1 = start1 + int1_start
+    s2 = start2 + int2_start
+    e1 = s1 + len(intersections)
+    e2 = s2 + len(intersections)
+    return e1, e2, s1, s2
 
 
 def calculate_default(path_data):
@@ -250,6 +264,13 @@ def calculate_adaptation(ref_path_data, ada_path_data, intersection, verbose=Fal
     ref_d_s = get_distance2(ref_path_data.path_weights_cum, ref_start_pos, ref_first_merge_pos)
     ada_d_s = get_distance2(ada_path_data.path_weights_cum, ada_start_pos, ada_first_merge_pos)
 
+    # Increase reference speed if needed to make it to the goal.
+    ref_v_def = max(ref_v_def, ref_path_L / (ref_t_d - ref_t_s))
+    ref_v_def = min(V_MAX, ref_v_def)
+    # If leader is going at max speed and is closer to merge point than follower, the follower can never catch up
+    if ref_v_def == V_MAX and ref_d_s < ada_d_s:
+        return -1
+
     # Distance from split to end
     ref_d_sp = ref_path_L - ref_d_s - d_p
     ada_d_sp = ada_path_L - ada_d_s - d_p
@@ -273,8 +294,7 @@ def calculate_adaptation(ref_path_data, ada_path_data, intersection, verbose=Fal
 
         if ada_t_m_fast > ref_t_m:  # cannot catch up at the earliest merge point with max speed
             v_star_s = v_star_fast
-            dx = (ref_t_s - ada_t_s + ref_d_s / ref_v_def - ada_d_s / v_star_s) / (
-                1. / v_star_s - 1. / ref_v_def)  # distance to travel past the merge point
+            dx = (ref_t_s - ada_t_s + ref_d_s / ref_v_def - ada_d_s / v_star_s) / (1. / v_star_s - 1. / ref_v_def)  # distance to travel past the merge point
         elif ada_t_m_slow < ref_t_m:  # cannot wait in at the earliest merge point with min speed
             v_star_s = v_star_slow
             dx = (ref_t_s - ada_t_s + ref_d_s / ref_v_def - ada_d_s / v_star_s) / (1. / v_star_s - 1. / ref_v_def)

@@ -28,15 +28,15 @@ def tear_down():
 
 def main():
     setup()
-    # generate_routes(400, './testing/testroutes/test400-3/')
+    # generate_routes(10000, './testing/testroutes/test10000-1/')
     # generate_routes(400, './testing/testroutes/test400-4/')
     # generate_routes(400, './testing/testroutes/test400-5/')
     # plot_clustering_savings_graph()
     # print plot_interval_graph()
     # print plot_horizon_graph()
-    # print average_fuel_savings(GreedyPlatooning(),['./testing/testroutes/test400-5/'], 15000)
-    result = dynamic_simulation(GreedyPlatooning(), folder='./testing/testroutes/test400-2/')
-    print sum([x.current_fuel_consumption() for x in result]) / sum([x.default_plan.fuel for x in result])
+    print average_fuel_savings(GreedyPlatooning(),['./testing/testroutes/test400-5/'])
+    # result = dynamic_simulation(GreedyPlatooning(), folder='./testing/testroutes/test400-5/')
+    # print sum([x.current_fuel_consumption() for x in result]) / sum([x.default_plan.fuel for x in result])
     # plot_expected_graph()
     tear_down()
 
