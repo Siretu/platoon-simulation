@@ -1,6 +1,6 @@
 import numpy as np
 
-from constants import F0p, F1p, F0, F1, V_MAX, V_NOM
+from constants import F0p, F1p, F0, F1, V_MAX, V_NOM, V_MIN
 from pairwise_planning import DefaultPlan, get_distance
 
 
@@ -40,7 +40,7 @@ class Truck:
         if v_d <= V_NOM:
             t_a = path_L / V_NOM + self.current_time
             v_default = V_NOM
-        elif v_d > V_NOM:
+        else:
             t_a = path_L / v_d + self.current_time
             v_default = v_d
 
@@ -49,8 +49,8 @@ class Truck:
         return DefaultPlan(t_a, f, v_default)
 
     def update(self, current_t):
-        # Haven't started yet
-        if current_t < self.start_time:
+        # Haven't started yet or already done
+        if current_t < self.start_time or self.done:
             return
         self.current_time = current_t
         self.current_pos = self.pos_from_total()

@@ -50,9 +50,12 @@ def dynamic_simulation(method, folder=None, horizon=HORIZON, interval=None):
     print "computing the coordination graph"
     G_p = cl.ClusterGraph([])
     leaders = None
+    previous_time = 0
     for time in update_times:
+        # print time - previous_time
+        current_trucks = {x.id: x for x in assignments if x.start_time <= time + horizon}
         map(lambda x: x.update(time), current_trucks.values())
-        current_trucks = {x.id: x for x in assignments if not x.done and x.start_time <= time + horizon}
+        current_trucks = {k: v for k, v in current_trucks.items() if not v.done}
         new_trucks = [current_trucks[x] for x in current_trucks if x not in G_p.nodes]
         # G_p = pp.build_graph(current_trucks, G_p)
         G_p.update(new_trucks, current_trucks, time)
@@ -63,9 +66,12 @@ def dynamic_simulation(method, folder=None, horizon=HORIZON, interval=None):
         for follower in current_trucks:
             if leaders[follower] >= 0:
                 current_trucks[follower].change_plan(G_p[follower][leaders[follower]], time)
-            else:#if leaders[follower] == LEADER:
+            else:
                 current_trucks[follower].change_plan(current_trucks[follower].calculate_default(), time)
         expected.append(sum([x.current_fuel_consumption() for x in assignments]))
+        if len(expected) > 1 and expected[-2] < expected[-1]:
+            print "Wtf???"
+        previous_time = time
         pass
 
     print expected

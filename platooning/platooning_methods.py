@@ -197,16 +197,17 @@ class SubModularityPlatooning(PlatooningMethod):
             return "deterministic sub modularity"
         return "stochastic sub modularity"
 
-    def clustering(self, G, verbose=False):
+    def clustering(self, G, verbose=False, leaders=None):
         cache = {}
+        G_set = set(G.nodes)
         X = [set()]
-        Y = [set(G.nodes)]
+        Y = [G_set]
 
-        for i,x in enumerate(G.nodes):
+        for i, x in enumerate(G.nodes):
             Xp = X[i].union([x])
             Yp = Y[i].difference([x])
-            a = self.f(Xp, G, cache) - self.f(X[i], G, cache)
-            b = self.f(Yp, G, cache) - self.f(Y[i], G, cache)
+            a = self.f(Xp, G, cache, G_set) - self.f(X[i], G, cache, G_set)
+            b = self.f(Yp, G, cache, G_set) - self.f(Y[i], G, cache, G_set)
             if self.deterministic:
                 keep_i = a >= b
             else:
@@ -245,10 +246,10 @@ class SubModularityPlatooning(PlatooningMethod):
         return real_followers, real_leaders, nodes, 1
 
     @staticmethod
-    def f(leaders, G, cache):
+    def f(leaders, G, cache, G_set):
         if str(leaders) in cache:
             return cache[str(leaders)]
-        followers = set(G.nodes).difference(leaders)
+        followers = G_set.difference(leaders)
         total = 0
         for follower in followers:
             max_gain = -100000
