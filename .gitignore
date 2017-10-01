@@ -5,3 +5,4 @@
 simres/
 testing/testroutes/
 *.pstat
+email_settings.py

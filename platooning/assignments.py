@@ -34,6 +34,8 @@ class Truck:
         path_L = get_distance(self.path_weights, self.current_pos, end_pos)
 
         v_d = path_L / (self.deadline - self.current_time)  # speed to arrive exactly at the deadline
+        if self.deadline - self.current_time < 0.0001:
+            v_d = V_NOM
 
         if v_d > V_MAX + 0.0001: # Add small delta for float comparison
             print "Warning: a truck cannot make its deadline!"

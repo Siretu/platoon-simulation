@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import sys
-
+import gc
 import clusteralg as cl
 import convex_optimization as cv
 import pairwise_planning as pp
@@ -12,6 +12,7 @@ import numpy as np
 import constants
 from constants import NONE, LEADER
 from verifier import verify_truck
+import email_settings
 
 HORIZON = 0
 
@@ -27,6 +28,11 @@ def average_fuel_savings(method, folders, horizon=HORIZON, interval=None, cutoff
             fuel_saving = 0
         total += fuel_saving
         print fuel_saving
+        email_settings.mail("erikihr@gmail.com", "Simulation results", "Fuel savings (%s): %f%%" % (method, fuel_saving * 100))
+        del result
+        del sliced_result
+        gc.collect()
+        print "Ran garbage collect"
 
     return total / len(folders)
 
@@ -59,7 +65,7 @@ def dynamic_simulation(method, folder=None, horizon=HORIZON, interval=None):
 
         # Clustering
         print "clustering: %d: %d" % (len([x for x in assignments if x.start_time <= time + horizon]), len(current_trucks))
-        N_f, N_l, leaders, counter = method.clustering(G_p, leaders=leaders)
+        N_f, N_l, leaders, counter = method.clustering(G_p)#, leaders=leaders)
         for follower in current_trucks:
             if leaders[follower] >= 0:
                 current_trucks[follower].change_plan(G_p[follower][leaders[follower]], time)
