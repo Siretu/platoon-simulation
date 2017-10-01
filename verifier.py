@@ -39,13 +39,13 @@ def verify_platooning(truck, assignments):
 
 
 def is_platooning(follower, leader, change):
-    follower_s = follower.link_pos(follower.current_distance(change.start_time+1))['i']
+    follower_s = follower.link_pos(follower.current_distance(change.start_time+0.1))['i']
     follower_platoon_start = follower.path[follower_s]
-    follower_e = follower.link_pos(follower.current_distance(change.end_time-1))['i']
+    follower_e = follower.link_pos(follower.current_distance(change.end_time-0.1))['i']
     follower_platoon_end = follower.path[follower_e]
-    leader_s = leader.link_pos(leader.current_distance(change.start_time+1))['i']
+    leader_s = leader.link_pos(leader.current_distance(change.start_time+0.1))['i']
     leader_platoon_start = leader.path[leader_s]
-    leader_e = leader.link_pos(leader.current_distance(change.end_time-1))['i']
+    leader_e = leader.link_pos(leader.current_distance(change.end_time-0.1))['i']
     leader_platoon_end = leader.path[leader_e]
     return follower_platoon_start == leader_platoon_start and follower_platoon_end == leader_platoon_end
 

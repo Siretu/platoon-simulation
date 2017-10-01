@@ -197,33 +197,45 @@ class SubModularityPlatooning(PlatooningMethod):
             return "deterministic sub modularity"
         return "stochastic sub modularity"
 
-    def clustering(self, G, verbose=False):
-        cache = {}
-        X = [set()]
-        Y = [set(G.nodes)]
+    def clustering(self, G, debug=False, leaders=None):
+        X = {node: NONE for node in G.nodes}  # no leaders
+        Y = {node: LEADER for node in G.nodes}  # all leaders
 
-        for i,x in enumerate(G.nodes):
-            Xp = X[i].union([x])
-            Yp = Y[i].difference([x])
-            a = self.f(Xp, G, cache) - self.f(X[i], G, cache)
-            b = self.f(Yp, G, cache) - self.f(Y[i], G, cache)
+        nodes = list(G.nodes)
+        if debug: nodes.sort()
+
+        for i, x in enumerate(nodes):
+            a = get_delta_u(x, X, G)
+            b = get_delta_u(x, Y, G)
             if self.deterministic:
                 keep_i = a >= b
             else:
                 ap = max(a, 0.)
                 bp = max(b, 0.)
                 local_random = random.Random(self.seed)
-                keep_i = not ((ap == 0 and bp == 0) or ap/(ap+bp) < local_random.random())
+                # this reinitializes the random generation at each call always giving the same random number
+                # make this a class attribute
+                keep_i = not ((ap == 0 and bp == 0) or ap / (ap + bp) < local_random.random())
 
             if keep_i:
-                X.append(Xp)
-                Y.append(Y[i])
-            else:
-                X.append(X[i])
-                Y.append(Yp)
+                change_to_leader(x, X, G, False)
+            else:  # become a leader
+                change_to_follower(x, Y, G, False)
 
-        leaders = X[-1]
-        return self.get_real_leaders(G, leaders)
+        # check if all leaders have followers
+        for n in G.nodes:
+            if X[n] == LEADER:
+                has_followers = False
+                for pot_follower in G.inverted_nodes[n]:
+                    if X[pot_follower] == n:
+                        has_followers = True
+                        break
+                if not has_followers:
+                    X[n] = NONE
+
+        N_l = set([nodel for nodel in nodes if X[nodel] == LEADER])
+        N_f = set([nodel for nodel in nodes if X[nodel] != LEADER])
+        return N_f, N_l, X, len(nodes)
 
     @staticmethod
     def get_real_leaders(G, leaders):
@@ -245,10 +257,10 @@ class SubModularityPlatooning(PlatooningMethod):
         return real_followers, real_leaders, nodes, 1
 
     @staticmethod
-    def f(leaders, G, cache):
+    def f(leaders, G, cache, G_set):
         if str(leaders) in cache:
             return cache[str(leaders)]
-        followers = set(G.nodes).difference(leaders)
+        followers = G_set.difference(leaders)
         total = 0
         for follower in followers:
             max_gain = -100000

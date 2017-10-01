@@ -37,6 +37,23 @@ def average_fuel_savings(method, folders, horizon=HORIZON, interval=None, cutoff
     return total / len(folders)
 
 
+def calculate_platoons(leaders):
+    platoons = {truck: 1 for truck in leaders}
+    for key in leaders:
+        if leaders[key] >= 0:
+            platoons[leaders[key]] += 1
+
+    sizes = {}
+    for key in platoons:
+        size = platoons[key]
+        if size > 1:
+            if size not in sizes:
+                sizes[size] = 0
+            sizes[size] += 1
+    return sizes
+
+
+
 def dynamic_simulation(method, folder=None, horizon=HORIZON, interval=None):
     pp.INTERSECTION_CACHE = {}
     print 'retrieving the routes'
@@ -56,22 +73,31 @@ def dynamic_simulation(method, folder=None, horizon=HORIZON, interval=None):
     print "computing the coordination graph"
     G_p = cl.ClusterGraph([])
     leaders = None
+    previous_time = 0
+    platoons = []
     for time in update_times:
+        # print time - previous_time
+        current_trucks = {x.id: x for x in assignments if x.start_time <= time + horizon}
         map(lambda x: x.update(time), current_trucks.values())
-        current_trucks = {x.id: x for x in assignments if not x.done and x.start_time <= time + horizon}
+        current_trucks = {k: v for k, v in current_trucks.items() if not v.done}
         new_trucks = [current_trucks[x] for x in current_trucks if x not in G_p.nodes]
         # G_p = pp.build_graph(current_trucks, G_p)
         G_p.update(new_trucks, current_trucks, time)
 
         # Clustering
         print "clustering: %d: %d" % (len([x for x in assignments if x.start_time <= time + horizon]), len(current_trucks))
-        N_f, N_l, leaders, counter = method.clustering(G_p)#, leaders=leaders)
+        N_f, N_l, leaders, counter = method.clustering(G_p, leaders=leaders)
+        if time >= 3600*24:
+            platoons.append(calculate_platoons(leaders))
         for follower in current_trucks:
             if leaders[follower] >= 0:
                 current_trucks[follower].change_plan(G_p[follower][leaders[follower]], time)
-            else:#if leaders[follower] == LEADER:
-                current_trucks[follower].change_plan(current_trucks[follower].calculate_default(), time)
+            else:
+                current_trucks[follower].change_plan(current_trucks[follower].calculate_default(leaders[follower] == LEADER), time)
         expected.append(sum([x.current_fuel_consumption() for x in assignments]))
+        # if len(expected) > 1 and expected[-2] < expected[-1]:
+        #     print "Wtf???"
+        previous_time = time
         pass
 
     print expected

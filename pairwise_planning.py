@@ -198,6 +198,8 @@ def calculate_adaptation(ref_path_data, ada_path_data, intersection, verbose=Fal
     ref_merge_ind = intersection[0][0]
     ref_split_ind = intersection[0][1]
     ref_v_def = ref_path_data.default_plan.speed
+    # if isinstance(ref_path_data.plan_history[-1], DefaultPlan):
+    #     ref_v_def = ref_path_data.plan_history[-1].speed
     #  ref_f_def = ref_default_plan['f']
     #  ref_t_a_def = ref_default_plan['t_a']
 
@@ -242,7 +244,7 @@ def calculate_adaptation(ref_path_data, ada_path_data, intersection, verbose=Fal
         ref_first_merge_pos['i'] += delta
         ada_first_merge_pos['i'] += delta
 
-    if ada_last_split_pos['i'] < ada_first_merge_pos['i'] or ref_last_split_pos['i'] < ada_first_merge_pos['i']:
+    if ada_last_split_pos['i'] < ada_first_merge_pos['i'] or ref_last_split_pos['i'] < ref_first_merge_pos['i']:
         return
 
     if get_distance2(ref_path_data.path_weights_cum, ref_start_pos, ref_last_split_pos) == 0.:  # we have passed the common part
@@ -294,9 +296,13 @@ def calculate_adaptation(ref_path_data, ada_path_data, intersection, verbose=Fal
 
         if ada_t_m_fast > ref_t_m:  # cannot catch up at the earliest merge point with max speed
             v_star_s = v_star_fast
+            if v_star_s == ref_v_def:
+                return -1
             dx = (ref_t_s - ada_t_s + ref_d_s / ref_v_def - ada_d_s / v_star_s) / (1. / v_star_s - 1. / ref_v_def)  # distance to travel past the merge point
         elif ada_t_m_slow < ref_t_m:  # cannot wait in at the earliest merge point with min speed
             v_star_s = v_star_slow
+            if v_star_s == ref_v_def:
+                return -1
             dx = (ref_t_s - ada_t_s + ref_d_s / ref_v_def - ada_d_s / v_star_s) / (1. / v_star_s - 1. / ref_v_def)
         else:  # can merge at the earliest merge point
             v_star_s = ada_d_s / (ref_t_m - ada_t_s)
@@ -327,7 +333,7 @@ def calculate_adaptation(ref_path_data, ada_path_data, intersection, verbose=Fal
     platoon_dist_left = total_dist_left - ada_d_sp
 
     t_sp_last = t_m_opt + platoon_dist_left / ref_v_def  # arrival time at the split point of the routes of the leader
-    # lastest time to pass the last split point
+    # latest time to pass the last split point
     t_sp_last_max = ada_t_d - ada_d_sp / v_star_fast
     if t_sp_last <= t_sp_last_max:  # can platoon until the end
         ada_d_sp_opt = ada_d_sp
@@ -342,6 +348,9 @@ def calculate_adaptation(ref_path_data, ada_path_data, intersection, verbose=Fal
         ada_d_sp_opt = (ada_t_d - t_m_opt - total_dist_left / ref_v_def) / (1. / v_star_fast - 1. / ref_v_def)
         v_star_sp = v_star_fast
         t_a_opt = ada_t_d
+
+    # TODO: Don't do this. Instead figure out how to allow for non-nominal times
+    # v_star_sp = max(v_star_sp, V_NOM)
     t_sp_opt = t_a_opt - ada_d_sp_opt / v_star_sp  # optimal split time
 
     # v_star_s = Speed while going to merge point

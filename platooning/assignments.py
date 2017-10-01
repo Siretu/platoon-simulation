@@ -1,6 +1,6 @@
 import numpy as np
 
-from constants import F0p, F1p, F0, F1, V_MAX, V_NOM
+from constants import F0p, F1p, F0, F1, V_MAX, V_NOM, V_MIN
 from pairwise_planning import DefaultPlan, get_distance
 
 
@@ -19,7 +19,7 @@ class Truck:
         self.current_pos = path_data_set['start_pos']
 
         self.current_time = self.start_time
-        self.default_plan = self.calculate_default()
+        self.default_plan = self.calculate_default(False)
         self.plan = self.default_plan
         self.speed_history = []
         self.speed_history += self.plan.calculate_history(self.start_time, self.plan.arrival_time)
@@ -27,7 +27,7 @@ class Truck:
         self.plan_history = [self.plan]
         self.completed_link_distance = 0
 
-    def calculate_default(self):
+    def calculate_default(self, isLeader):
         # returns the arrival time, default speed, and fuel consumption of the default plan
 
         end_pos = {'i': len(self.path_weights) - 1, 'x': self.path_weights[-1]}
@@ -36,13 +36,16 @@ class Truck:
         v_d = path_L / (self.deadline - self.current_time)  # speed to arrive exactly at the deadline
         if self.deadline - self.current_time < 0.0001:
             v_d = V_NOM
+        default_speed = V_MIN
+        if isLeader:
+            default_speed = V_NOM
 
         if v_d > V_MAX + 0.0001: # Add small delta for float comparison
             print "Warning: a truck cannot make its deadline!"
-        if v_d <= V_NOM:
-            t_a = path_L / V_NOM + self.current_time
-            v_default = V_NOM
-        elif v_d > V_NOM:
+        if v_d <= default_speed:
+            t_a = path_L / default_speed + self.current_time
+            v_default = default_speed
+        else:
             t_a = path_L / v_d + self.current_time
             v_default = v_d
 
@@ -51,8 +54,8 @@ class Truck:
         return DefaultPlan(t_a, f, v_default)
 
     def update(self, current_t):
-        # Haven't started yet
-        if current_t < self.start_time:
+        # Haven't started yet or already done
+        if current_t < self.start_time or self.done:
             return
         self.current_time = current_t
         self.current_pos = self.pos_from_total()
