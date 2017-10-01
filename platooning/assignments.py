@@ -19,7 +19,7 @@ class Truck:
         self.current_pos = path_data_set['start_pos']
 
         self.current_time = self.start_time
-        self.default_plan = self.calculate_default()
+        self.default_plan = self.calculate_default(False)
         self.plan = self.default_plan
         self.speed_history = []
         self.speed_history += self.plan.calculate_history(self.start_time, self.plan.arrival_time)
@@ -27,19 +27,22 @@ class Truck:
         self.plan_history = [self.plan]
         self.completed_link_distance = 0
 
-    def calculate_default(self):
+    def calculate_default(self, isLeader):
         # returns the arrival time, default speed, and fuel consumption of the default plan
 
         end_pos = {'i': len(self.path_weights) - 1, 'x': self.path_weights[-1]}
         path_L = get_distance(self.path_weights, self.current_pos, end_pos)
 
         v_d = path_L / (self.deadline - self.current_time)  # speed to arrive exactly at the deadline
+        default_speed = V_MIN
+        if isLeader:
+            default_speed = V_NOM
 
         if v_d > V_MAX + 0.0001: # Add small delta for float comparison
             print "Warning: a truck cannot make its deadline!"
-        if v_d <= V_NOM:
-            t_a = path_L / V_NOM + self.current_time
-            v_default = V_NOM
+        if v_d <= default_speed:
+            t_a = path_L / default_speed + self.current_time
+            v_default = default_speed
         else:
             t_a = path_L / v_d + self.current_time
             v_default = v_d
