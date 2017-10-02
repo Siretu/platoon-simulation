@@ -143,6 +143,10 @@ class RandomPlatooning(PlatooningMethod):
         nodes = list(G.nodes)
         if not leaders:
             leaders = {node: NONE for node in nodes}
+        else:
+            for truck in G.nodes:
+                if truck not in leaders or (leaders[truck] >= 0 and leaders[truck] not in G[truck]):
+                    leaders[truck] = NONE
 
         gains = {node: 0 for node in nodes}  # current gain from platooning
         counter = 0
@@ -191,6 +195,7 @@ class SubModularityPlatooning(PlatooningMethod):
     def __init__(self, deterministic=True, seed=0):
         self.deterministic = deterministic
         self.seed = seed
+        self.local_random = random.Random(self.seed)
 
     def __str__(self):
         if self.deterministic:
@@ -212,10 +217,9 @@ class SubModularityPlatooning(PlatooningMethod):
             else:
                 ap = max(a, 0.)
                 bp = max(b, 0.)
-                local_random = random.Random(self.seed)
                 # this reinitializes the random generation at each call always giving the same random number
                 # make this a class attribute
-                keep_i = not ((ap == 0 and bp == 0) or ap / (ap + bp) < local_random.random())
+                keep_i = not ((ap == 0 and bp == 0) or ap / (ap + bp) < self.local_random.random())
 
             if keep_i:
                 change_to_leader(x, X, G, False)

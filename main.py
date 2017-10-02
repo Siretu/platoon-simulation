@@ -53,8 +53,8 @@ def main():
 
 def clustering_data(testset="./testing/testroutes/test400-%d/", nr=5):
     fuel_savings = []
-    for method in [RandomPlatooning(0), SubModularityPlatooning(True), SubModularityPlatooning(False)]:
-        fuel_savings.append(average_fuel_savings(method,[testset % (x+1) for x in range(nr)]))
+    for method in [GreedyPlatooning(), SubModularityPlatooning(True), SubModularityPlatooning(False)]:
+        fuel_savings.append(average_fuel_savings(method,[testset % (x+1) for x in range(nr)], interval=600))
         print fuel_savings
         email_settings.mail("erikihr@gmail.com", "Partial results", str(fuel_savings))
     return fuel_savings

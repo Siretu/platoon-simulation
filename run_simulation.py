@@ -13,6 +13,7 @@ import constants
 from constants import NONE, LEADER
 from verifier import verify_truck
 import email_settings
+import time
 
 HORIZON = 0
 
@@ -20,6 +21,7 @@ HORIZON = 0
 def average_fuel_savings(method, folders, horizon=HORIZON, interval=None, cutoff=constants.START_INTERVAL / 2):
     total = 0
     for folder in folders:
+        start = time.time()
         result = dynamic_simulation(method, folder=folder, horizon=horizon, interval=interval)
         sliced_result = [x for x in result if x.start_time >= cutoff]
         if len(sliced_result) > 0:
@@ -28,6 +30,9 @@ def average_fuel_savings(method, folders, horizon=HORIZON, interval=None, cutoff
             fuel_saving = 0
         total += fuel_saving
         print fuel_saving
+        t = time.time()-start
+        print "%s: %.3f" % ("Time", t)
+            
         email_settings.mail("erikihr@gmail.com", "Simulation results", "Fuel savings (%s): %f%%" % (method, fuel_saving * 100))
         del result
         del sliced_result
