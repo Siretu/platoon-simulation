@@ -54,7 +54,6 @@ def main():
     tear_down()
 
 
-
 def clustering_data(testset="./testing/testroutes/test400-%d/", nr=5):
     fuel_savings = []
     for method in [GreedyPlatooning(), SubModularityPlatooning(True), SubModularityPlatooning(False)]:
@@ -63,20 +62,18 @@ def clustering_data(testset="./testing/testroutes/test400-%d/", nr=5):
         email_settings.mail("erikihr@gmail.com", "Partial results", str(fuel_savings))
     return fuel_savings
 
-def horizon_data():
+
+def horizon_data(testset="./testing/testroutes/test400-%d/", nr=5):
     total = []
-    for method in [GreedyPlatooning(), RandomPlatooning(0), SubModularityPlatooning(True), SubModularityPlatooning(False)]:
-        savings = []
+    for method in [GreedyPlatooning()]:#, RandomPlatooning(0), SubModularityPlatooning(True), SubModularityPlatooning(False)]:
+        fuel_savings = []
         for horizon in range(0, 7210, 300):
             print "%s: %d/7200" % (method, horizon)
-            fuel_savings = average_fuel_savings(method,
-                                                ['./testing/testroutes/test400-1/', './testing/testroutes/test400-2/',
-                                                 './testing/testroutes/test400-3/', './testing/testroutes/test400-4/',
-                                                 './testing/testroutes/test400-5/'], horizon)
-            savings.append(fuel_savings)
+            fuel_savings.append(average_fuel_savings(method, [testset % (x + 1) for x in range(nr)], horizon=horizon))
             print fuel_savings
-        print savings
-        total.append(savings)
+            email_settings.mail("erikihr@gmail.com", "Partial results", str(fuel_savings))
+        print fuel_savings
+        total.append(fuel_savings)
     print total
     return total
 
