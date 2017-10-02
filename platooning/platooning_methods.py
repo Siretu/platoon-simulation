@@ -143,6 +143,10 @@ class RandomPlatooning(PlatooningMethod):
         nodes = list(G.nodes)
         if not leaders:
             leaders = {node: NONE for node in nodes}
+        else:
+            for truck in G.nodes:
+                if truck not in leaders or (leaders[truck] >= 0 and leaders[truck] not in G[truck]):
+                    leaders[truck] = NONE
 
         gains = {node: 0 for node in nodes}  # current gain from platooning
         counter = 0
