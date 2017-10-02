@@ -30,6 +30,10 @@ def tear_down(result=0):
 
 def main():
     setup()
+    # generate_routes(10000, './testing/testroutes/test10000-1/')
+    # generate_routes(400, './testing/testroutes/test400-4/')
+    # generate_routes(400, './testing/testroutes/test400-5/')
+    plot_clustering_savings_graph()
     # generate_routes(10000, './testing/testroutes/test10000-2/')
     # generate_routes(10000, './testing/testroutes/test10000-3/')
     # generate_routes(10000, './testing/testroutes/test10000-4/')
@@ -175,8 +179,8 @@ def plot_interval_graph():
 
 def plot_clustering_savings_graph():
     # y = clustering_data()
-    y = [0.04257685171991539, 0.038286281860540193, 0.039543045048311784, 0.038288638135185481]
-    labels = ["%.1f%%" % (y[0]*100), "%.1f%%" % (y[1]*100), "%.1f%%" % (y[2]*100), "%.1f%%" % (y[3]*100)]
+    y = [0.069183374727494668, 0.06886248108850572, 0.061555225260905531, 0.059748327675762679]
+    labels = ["%.2f%%" % (y[0]*100), "%.2f%%" % (y[1]*100), "%.2f%%" % (y[2]*100), "%.2f%%" % (y[3]*100)]
     N = len(y)
     x = range(N)
     # ["a","b","c","d"]
