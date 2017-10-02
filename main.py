@@ -1,5 +1,6 @@
 import cProfile
 import time
+import email_settings
 
 from platooning.platooning_methods import GreedyPlatooning, RandomPlatooning, SubModularityPlatooning
 from route_calculation import get_path_data_sets, generate_routes
@@ -19,11 +20,12 @@ def setup():
     pr.enable()
 
 
-def tear_down():
+def tear_down(result=0):
     pr.disable()
     pr.dump_stats("profile.pstat")
     t = time.time() - start
     print "%s: %.3f" % ("Time", t)
+    email_settings.mail("erikihr@gmail.com", "Simulation", "Total time: %f" % t)
 
 
 def main():
@@ -32,7 +34,18 @@ def main():
     # generate_routes(400, './testing/testroutes/test400-4/')
     # generate_routes(400, './testing/testroutes/test400-5/')
     plot_clustering_savings_graph()
+    # generate_routes(10000, './testing/testroutes/test10000-2/')
+    # generate_routes(10000, './testing/testroutes/test10000-3/')
+    # generate_routes(10000, './testing/testroutes/test10000-4/')
+    # generate_routes(10000, './testing/testroutes/test10000-5/')
+    # generate_routes(400, './testing/testroutes/test400-1/')
+    # generate_routes(400, './testing/testroutes/test400-2/')
+    # plot_clustering_savings_graph()
     # print plot_interval_graph()
+    # print plot_horizon_graph()
+    #result = average_fuel_savings(GreedyPlatooning(),['./testing/testroutes/test10000-1/'])
+    #print result
+    print clustering_data(testset="./testing/testroutes/test10000-%d/", nr=5)
     # print plot_expected_graph()
     # print average_fuel_savings(SubModularityPlatooning(False),['./testing/testroutes/test400-1/'], interval=600)
     # result = dynamic_simulation(GreedyPlatooning(), folder='./testing/testroutes/test400-5/')
@@ -41,14 +54,13 @@ def main():
     tear_down()
 
 
-def clustering_data():
+
+def clustering_data(testset="./testing/testroutes/test400-%d/", nr=5):
     fuel_savings = []
-    for method in [GreedyPlatooning(), RandomPlatooning(0), SubModularityPlatooning(True), SubModularityPlatooning(False)]:
-        fuel_savings.append(average_fuel_savings(method,
-                                                 ['./testing/testroutes/test400-1/', './testing/testroutes/test400-2/',
-                                                  './testing/testroutes/test400-3/', './testing/testroutes/test400-4/',
-                                                  './testing/testroutes/test400-5/']))
+    for method in [RandomPlatooning(0), SubModularityPlatooning(True), SubModularityPlatooning(False)]:
+        fuel_savings.append(average_fuel_savings(method,[testset % (x+1) for x in range(nr)]))
         print fuel_savings
+        email_settings.mail("erikihr@gmail.com", "Partial results", str(fuel_savings))
     return fuel_savings
 
 def horizon_data():
