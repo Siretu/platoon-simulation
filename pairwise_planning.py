@@ -72,6 +72,15 @@ class AdaptedPlan(PlatoonPlan):
 
         return result
 
+    def __eq__(self, other):
+        if not isinstance(other, self.__class__):
+            return False
+
+        return self.leader == other.leader
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
 
 class DefaultPlan(PlatoonPlan):
     def __init__(self, arrival_time, fuel, speed):
@@ -82,6 +91,15 @@ class DefaultPlan(PlatoonPlan):
     def calculate_history(self, previous_t, current_t):
         from platooning.assignments import SpeedChange
         return [SpeedChange(previous_t, self.speed, end_time=current_t)]
+
+    def __eq__(self, other):
+        if not isinstance(other, self.__class__):
+            return False
+
+        return abs(self.arrival_time - other.arrival_time) < 0.001 and abs(self.speed - other.speed) < 0.001
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
 
 
 INTERSECTION_CACHE = {}

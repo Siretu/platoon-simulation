@@ -109,7 +109,7 @@ class GreedyPlatooning(PlatooningMethod):
 
 
 class RandomPlatooning(PlatooningMethod):
-    def __init__(self, seed):
+    def __init__(self, seed=0):
         self.seed = seed
 
     def __str__(self):

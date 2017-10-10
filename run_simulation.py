@@ -5,6 +5,7 @@ import gc
 import clusteralg as cl
 import convex_optimization as cv
 import pairwise_planning as pp
+import statistics
 from platooning.assignments import Truck
 from platooning.platooning_methods import GreedyPlatooning
 from route_calculation import get_path_data_sets, get_routes
@@ -107,6 +108,8 @@ def dynamic_simulation(method, folder=None, horizon=HORIZON, interval=None):
 
     print expected
     print expected[-1]/expected[0]
+    print statistics.average_plan_length(assignments)
+    print statistics.average_plan_length(assignments, False)
     print "Verifying result"
     [verify_truck(x, {y.id: y for y in assignments}) for x in assignments]
     return assignments

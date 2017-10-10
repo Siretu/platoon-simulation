@@ -24,7 +24,7 @@ class Truck:
         self.speed_history = []
         self.speed_history += self.plan.calculate_history(self.start_time, self.plan.arrival_time)
         self.done = False
-        self.plan_history = [self.plan]
+        self.plan_history = [PlanSegment(self.plan, self.start_time, self)]
         self.completed_link_distance = 0
 
     def calculate_default(self, isLeader):
@@ -88,8 +88,9 @@ class Truck:
             # Delete speed change with zero duration
             if self.speed_history[-1].start_time == self.speed_history[-1].end_time:
                 self.speed_history = self.speed_history[:-1]
-        if new_plan != self.plan_history[-1]:
-            self.plan_history.append(new_plan)
+        if new_plan != self.plan_history[-1].plan:
+            self.plan_history[-1].end_time = current_time
+            self.plan_history.append(PlanSegment(new_plan, current_time, self))
         self.plan = new_plan
         if current_time < self.start_time: # Calculate from start time instead
             history = self.plan.calculate_history(self.start_time, self.plan.arrival_time)
@@ -148,3 +149,10 @@ class SpeedChange:
         if self.platooning == -1:
             return "%f m/s at t: %f" % (self.speed, self.start_time)
         return "%f m/s at t: %f (platooning: %d)" % (self.speed, self.start_time, self.platooning)
+
+
+class PlanSegment:
+    def __init__(self, plan, time, truck):
+        self.start_time = time
+        self.end_time = truck.deadline
+        self.plan = plan
