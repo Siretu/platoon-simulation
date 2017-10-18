@@ -7,7 +7,7 @@ import convex_optimization as cv
 import pairwise_planning as pp
 import statistics
 from platooning.assignments import Truck
-from platooning.platooning_methods import GreedyPlatooning
+from platooning.platooning_methods import GreedyPlatooning, RandomPlatooning, SubModularityPlatooning
 from route_calculation import get_path_data_sets, get_routes
 import numpy as np
 import constants
@@ -59,6 +59,23 @@ def calculate_platoons(leaders):
     return sizes
 
 
+def calculate_similarities(G_p, similarities, prev_leaders):
+    methods = [GreedyPlatooning(), RandomPlatooning(), SubModularityPlatooning(False), SubModularityPlatooning(True)]
+    leaders = {str(method): method.clustering(G_p, leaders=prev_leaders[i]) for i,method in enumerate(methods)}
+    for i,method in enumerate(methods):
+        for method2 in methods[i:]:
+            m1 = str(method)
+            m2 = str(method2)
+            old = similarities[m1][m2]
+            if len(leaders[m1][1] | leaders[m2][1]) == 0:
+                continue
+            avg = len((leaders[m1][1] & leaders[m2][1])) / float(len((leaders[m1][1] | leaders[m2][1])))
+            new_count = old[1]+1
+            new_total = ((old[0] * old[1] + avg) / float(new_count), new_count)
+            similarities[m1][m2] = new_total
+            similarities[m2][m1] = new_total
+    return [x[2] for x in leaders.values()]
+
 
 def dynamic_simulation(method, folder=None, horizon=HORIZON, interval=None):
     pp.INTERSECTION_CACHE = {}
@@ -81,33 +98,42 @@ def dynamic_simulation(method, folder=None, horizon=HORIZON, interval=None):
     leaders = None
     previous_time = 0
     platoons = []
+    methods = [GreedyPlatooning(), RandomPlatooning(), SubModularityPlatooning(False), SubModularityPlatooning(True)]
+    similarities = {str(x): {str(x): (0,0) for x in methods} for x in methods}
+    prev_leaders = [None, None, None, None]
     for time in update_times:
         # print time - previous_time
+
         current_trucks = {x.id: x for x in assignments if x.start_time <= time + horizon}
         map(lambda x: x.update(time), current_trucks.values())
         current_trucks = {k: v for k, v in current_trucks.items() if not v.done}
         new_trucks = [current_trucks[x] for x in current_trucks if x not in G_p.nodes]
+
         # G_p = pp.build_graph(current_trucks, G_p)
         G_p.update(new_trucks, current_trucks, time)
 
         # Clustering
         print "clustering: %d: %d" % (len([x for x in assignments if x.start_time <= time + horizon]), len(current_trucks))
         N_f, N_l, leaders, counter = method.clustering(G_p, leaders=leaders)
-        if time >= 3600*24:
-            platoons.append(calculate_platoons(leaders))
+        prev_leaders = calculate_similarities(G_p, similarities, prev_leaders)
+
         for follower in current_trucks:
             if leaders[follower] >= 0:
                 current_trucks[follower].change_plan(G_p[follower][leaders[follower]], time)
             else:
                 current_trucks[follower].change_plan(current_trucks[follower].calculate_default(leaders[follower] == LEADER), time)
+
+        # if len(current_trucks) > 0:
+        #     platoon_ratio = len([x for x in current_trucks.values() if x.is_platoon_follower(time)]) / float(len(current_trucks))
+        #     print platoon_ratio
+        #     platoons.append(platoon_ratio)
         expected.append(sum([x.current_fuel_consumption() for x in assignments]))
-        # if len(expected) > 1 and expected[-2] < expected[-1]:
-        #     print "Wtf???"
-        previous_time = time
-        pass
 
     print expected
+    print platoons
+    print similarities
     print expected[-1]/expected[0]
+    print statistics.average_platoon_time(assignments)
     print statistics.average_plan_length(assignments)
     print statistics.average_plan_length(assignments, False)
     print "Verifying result"

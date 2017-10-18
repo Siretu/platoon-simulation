@@ -36,6 +36,7 @@ class ClusterGraph:
         from pairwise_planning import find_route_intersection, calculate_adaptation
         # self.clear_old(current_trucks)
 
+        # Re-calculate old edges
         for follower in self.nodes:
             for leader in self.nodes[follower].keys():
                 # self.nodes[follower][leader].recalculate_fuel(time)
@@ -53,7 +54,7 @@ class ClusterGraph:
                             del (self.nodes[follower][leader])
                             del (self.inverted_nodes[leader][follower])
 
-
+        # Form new edges with new trucks
         for truck in new_trucks:
             self.nodes[truck.id] = {}
             self.inverted_nodes[truck.id] = {}
@@ -81,6 +82,7 @@ class ClusterGraph:
                             else:
                                 self.add(truck.id, old_truck.id, plan)
 
+        # Form new edges with old trucks
         for kf in current_trucks:
             for kl in self.potential_edges[kf].keys()[:]:
                 if kl not in current_trucks:
