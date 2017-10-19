@@ -106,7 +106,7 @@ class Truck:
 
     def is_platoon_follower(self, t):
         for change in self.speed_history:
-            if change.start_time < t < change.end_time:
+            if change.start_time <= t < change.end_time:
                 return change.platooning != -1
         return False
 

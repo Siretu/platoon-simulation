@@ -81,6 +81,7 @@ def dynamic_simulation(method, folder=None, horizon=HORIZON, interval=None):
     pp.INTERSECTION_CACHE = {}
     print 'retrieving the routes'
     path_data_sets = get_path_data_sets(folder)
+    routes = get_routes(folder)
 
     assignments = [Truck(i, path_data_sets[i]) for i in path_data_sets]
     path_data_sets = []
@@ -123,14 +124,15 @@ def dynamic_simulation(method, folder=None, horizon=HORIZON, interval=None):
             else:
                 current_trucks[follower].change_plan(current_trucks[follower].calculate_default(leaders[follower] == LEADER), time)
 
-        # if len(current_trucks) > 0:
-        #     platoon_ratio = len([x for x in current_trucks.values() if x.is_platoon_follower(time)]) / float(len(current_trucks))
-        #     print platoon_ratio
-        #     platoons.append(platoon_ratio)
+        if len(current_trucks) > 0:
+            platoon_ratio = len([x for x in current_trucks.values() if x.is_platoon_follower(time)]) / float(len(current_trucks))
+            # print platoon_ratio
+            platoons.append(platoon_ratio)
         expected.append(sum([x.current_fuel_consumption() for x in assignments]))
 
     print expected
     print platoons
+    print platoons[-1]
     print similarities
     print expected[-1]/expected[0]
     print statistics.average_platoon_time(assignments)

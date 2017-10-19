@@ -32,7 +32,8 @@ def verify_platooning(truck, assignments):
     for change in truck.speed_history:
         if change.platooning != -1:
             leader = assignments[change.platooning]
-            if leader.is_platoon_follower(change.start_time) or leader.is_platoon_follower(change.end_time):
+            # Leader can be a platoon follower at the ends of the speed change, right as it transitions.
+            if leader.is_platoon_follower(change.start_time+0.1) or leader.is_platoon_follower(change.end_time-0.1):
                 print "Error: platoon leader is simultaneously a platoon follower"
             if not is_platooning(truck, leader, change):
                 print "Error: Platooning mismatch"
