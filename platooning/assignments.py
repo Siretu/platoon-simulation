@@ -137,6 +137,17 @@ class Truck:
             total += d
         return total
 
+    def get_speed_history_plot(self):
+        x = []
+        y = []
+        for change in self.speed_history:
+            x.append(change.start_time)
+            x.append(change.end_time)
+            y.append(change.speed)
+            y.append(change.speed)
+
+        return [x,y]
+
 
 class SpeedChange:
     def __init__(self, start_time, speed, platooning=-1, end_time=None):

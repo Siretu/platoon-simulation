@@ -26,7 +26,7 @@ class UnitTests(unittest.TestCase):
 
     def test_adapted_calculate_history_1(self):
         # Fuel consumption, fuel difference, distance to merge, distance to split, merge time, split time, arrival time
-        plan = AdaptedPlan(0, 0, 0, 100, 100, 10, 20, 40, 30, 22, 35, 1)
+        plan = AdaptedPlan(0, 0, 0, 100, 100, 10, 20, 40, 30, 22, 35, 1, 0)
         new_history = plan.calculate_history(0, 8)
         self.assertEquals(30, new_history[0].speed)
         self.assertEquals(0, new_history[0].start_time)
@@ -34,7 +34,7 @@ class UnitTests(unittest.TestCase):
 
     def test_adapted_calculate_history_2(self):
         # Fuel consumption, fuel difference, distance to merge, distance to split, merge time, split time, arrival time
-        plan = AdaptedPlan(0, 0, 0, 100, 100, 10, 20, 40, 30, 22, 35, 1)
+        plan = AdaptedPlan(0, 0, 0, 100, 100, 10, 20, 40, 30, 22, 35, 1, 0)
         new_history = plan.calculate_history(0, 15)
         self.assertEquals(30, new_history[0].speed)
         self.assertEquals(0, new_history[0].start_time)
@@ -45,7 +45,7 @@ class UnitTests(unittest.TestCase):
 
     def test_adapted_calculate_history_3(self):
         # Fuel consumption, fuel difference, distance to merge, distance to split, merge time, split time, arrival time
-        plan = AdaptedPlan(0, 0, 0, 100, 100, 10, 20, 40, 30, 22, 35, 1)
+        plan = AdaptedPlan(0, 0, 0, 100, 100, 10, 20, 40, 30, 22, 35, 1, 0)
         new_history = plan.calculate_history(0, 30)
         self.assertEquals(30, new_history[0].speed)
         self.assertEquals(0, new_history[0].start_time)
@@ -59,7 +59,7 @@ class UnitTests(unittest.TestCase):
 
     def test_adapted_calculate_history_4(self):
         # Fuel consumption, fuel difference, distance to merge, distance to split, merge time, split time, arrival time
-        plan = AdaptedPlan(0, 0, 0, 100, 100, 10, 20, 40, 30, 22, 35, 1)
+        plan = AdaptedPlan(0, 0, 0, 100, 100, 10, 20, 40, 30, 22, 35, 1, 0)
         new_history = plan.calculate_history(11, 15)
         self.assertEquals(22, new_history[0].speed)
         self.assertEquals(11, new_history[0].start_time)
@@ -67,7 +67,7 @@ class UnitTests(unittest.TestCase):
 
     def test_adapted_calculate_history_5(self):
         # Fuel consumption, fuel difference, distance to merge, distance to split, merge time, split time, arrival time
-        plan = AdaptedPlan(0, 0, 0, 100, 100, 10, 20, 40, 30, 22, 35, 1)
+        plan = AdaptedPlan(0, 0, 0, 100, 100, 10, 20, 40, 30, 22, 35, 1, 0)
         new_history = plan.calculate_history(12, 22)
         self.assertEquals(22, new_history[0].speed)
         self.assertEquals(12, new_history[0].start_time)
@@ -78,7 +78,7 @@ class UnitTests(unittest.TestCase):
 
     def test_adapted_calculate_history_6(self):
         # Fuel consumption, fuel difference, distance to merge, distance to split, merge time, split time, arrival time
-        plan = AdaptedPlan(0, 0, 0, 100, 100, 10, 20, 40, 30, 22, 35, 1)
+        plan = AdaptedPlan(0, 0, 0, 100, 100, 10, 20, 40, 30, 22, 35, 1, 0)
         new_history = plan.calculate_history(25, 38)
         self.assertEquals(35, new_history[0].speed)
         self.assertEquals(25, new_history[0].start_time)

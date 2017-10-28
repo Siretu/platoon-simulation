@@ -45,9 +45,11 @@ class AdaptedPlan(PlatoonPlan):
             total += self.merge_fuel_multiplier * (self.merge_time - current_t)
         if current_t < self.split_time:
             total += self.platoon_fuel_multiplier * (self.split_time - max(current_t, self.merge_time))
-        total += self.split_fuel_multiplier * (self.arrival_time - max(current_t, self.split_time))
+        else:
+            return 0
+        # total += self.split_fuel_multiplier * (self.split_time - max(current_t, self.split_time))
         self.fuel = total
-        self.default_fuel = (F0 + F1 * V_NOM) * V_NOM * (self.arrival_time - current_t)
+        self.default_fuel = (F0 + F1 * V_NOM) * V_NOM * (self.split_time - current_t)
         self.fuel_diff = self.default_fuel - self.fuel
         return self.fuel_diff
 

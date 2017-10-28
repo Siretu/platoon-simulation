@@ -49,7 +49,7 @@ F1p = 2 * eta * bar_F2 * V_NOM
 
 EPS = 1e-6  # threshold to consider to positions coinciding
 
-START_INTERVAL = 48. * 3600
+START_INTERVAL = 0. * 3600
 
 # time gap for spontaneous platooning
 TIME_GAP = 60.  # one minute

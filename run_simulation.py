@@ -14,7 +14,7 @@ import constants
 from constants import NONE, LEADER
 from verifier import verify_truck
 import email_settings
-import time
+import time as tlib
 
 HORIZON = 0
 
@@ -77,7 +77,7 @@ def calculate_similarities(G_p, similarities, prev_leaders):
     return [x[2] for x in leaders.values()]
 
 
-def dynamic_simulation(method, folder=None, horizon=HORIZON, interval=None):
+def dynamic_simulation(method, folder=None, horizon=HORIZON, interval=None, limit=None):
     pp.INTERSECTION_CACHE = {}
     print 'retrieving the routes'
     path_data_sets = get_path_data_sets(folder)
@@ -86,6 +86,8 @@ def dynamic_simulation(method, folder=None, horizon=HORIZON, interval=None):
     assignments = [Truck(i, path_data_sets[i]) for i in path_data_sets]
     path_data_sets = []
     assignments.sort(key=lambda x: x.start_time)
+    if limit:
+        assignments = assignments[:limit]
 
     update_times = [x.start_time for x in assignments]
 
@@ -102,6 +104,7 @@ def dynamic_simulation(method, folder=None, horizon=HORIZON, interval=None):
     methods = [GreedyPlatooning(), RandomPlatooning(), SubModularityPlatooning(False), SubModularityPlatooning(True)]
     similarities = {str(x): {str(x): (0,0) for x in methods} for x in methods}
     prev_leaders = [None, None, None, None]
+    t = tlib.time()
     for time in update_times:
         # print time - previous_time
 
@@ -130,6 +133,7 @@ def dynamic_simulation(method, folder=None, horizon=HORIZON, interval=None):
             platoons.append(platoon_ratio)
         expected.append(sum([x.current_fuel_consumption() for x in assignments]))
 
+    return tlib.time() - t
     print expected
     print platoons
     print platoons[-1]
